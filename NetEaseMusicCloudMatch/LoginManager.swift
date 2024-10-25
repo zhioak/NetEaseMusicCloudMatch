@@ -112,7 +112,7 @@ class LoginManager: ObservableObject {
         UserDefaults.standard.set(userToken, forKey: "userToken")
         UserDefaults.standard.set(userAvatarURL, forKey: "userAvatarURL")
         UserDefaults.standard.set(Date(), forKey: "loginTime")
-        print("用户信息已保存")
+        print("用信息已保存")
     }
     
     private func clearUserInfo() {
@@ -268,7 +268,7 @@ class LoginManager: ObservableObject {
                                     }
                                 default:
                                     if !self.isLoggedIn {
-                                        print("尚未登录，继续等待")
+                                        print("尚登录，继续等待")
                                     }
                                 }
                             }
@@ -330,7 +330,7 @@ class LoginManager: ObservableObject {
                             // 打印用户信息
                             print("用户信息:")
                             print("用户名: \(self.username)")
-                            print("头像URL: \(self.userAvatarURL?.absoluteString ?? "无")")
+                            print("头URL: \(self.userAvatarURL?.absoluteString ?? "无")")
                             print("其他信息: \(profile)")
                             
                             // 保存用户信息
@@ -369,7 +369,7 @@ class LoginManager: ObservableObject {
                         print("头像成功下载并设，大小: \(image.size)")
                     }
                 } else {
-                    print("法从创建 NSImage")
+                    print("法从创 NSImage")
                 }
             } else {
                 print("没有收到头像数据")
@@ -424,7 +424,7 @@ class LoginManager: ObservableObject {
         }
         
         let parameters: [String: Any] = [
-            "limit": 2,
+            "limit": 15,
             "offset": 0
         ]
         request.httpBody = parameters.percentEncoded()
@@ -590,7 +590,7 @@ class LoginManager: ObservableObject {
 }
 
 struct CloudSong: Identifiable, Equatable, Comparable {
-    let id: String
+    var id: String  // 改为可变
     let name: String
     let artist: String
     let album: String
@@ -599,7 +599,9 @@ struct CloudSong: Identifiable, Equatable, Comparable {
     let bitrate: Int
     let addTime: Date
     let picUrl: String
+    let duration: Int
     var matchStatus: MatchStatus = .notMatched
+    var matchId: String?  // 新增属性
     
     enum MatchStatus: Equatable {
         case notMatched
@@ -653,6 +655,9 @@ struct CloudSong: Identifiable, Equatable, Comparable {
         } else {
             self.addTime = Date()
         }
+        
+        // 修正：从 simpleSong 中解析 dt 字段
+        self.duration = simpleSong["dt"] as? Int ?? 0
     }
     
     static func < (lhs: CloudSong, rhs: CloudSong) -> Bool {
@@ -748,6 +753,12 @@ extension String {
 private func RandomIp() -> String {
     return (1...4).map { _ in String(Int.random(in: 1...255)) }.joined(separator: ".")
 }
+
+
+
+
+
+
 
 
 

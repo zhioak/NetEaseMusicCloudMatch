@@ -19,8 +19,6 @@ private let columnPadding: CGFloat = 8
 struct ContentView: View {
     @StateObject private var loginManager = LoginManager.shared
     @State private var searchText = ""
-    @State private var selectedSongId: String?
-    @State private var matchInputText = ""
     @State private var isMatching = false
     @State private var matchResult: String?
     
@@ -93,38 +91,9 @@ struct ContentView: View {
                         CloudSongTableView(songs: Binding(
                             get: { self.loginManager.cloudSongs },
                             set: { self.loginManager.cloudSongs = $0 }
-                        ), selectedSongId: $selectedSongId, searchText: $searchText)
+                        ), searchText: $searchText, performMatch: performMatch)
                             .frame(maxWidth: .infinity)
-                            .frame(height: geometry.size.height * 0.5)
-                        
-                        // 选中音乐项的详细信息和匹配功能
-                        VStack(alignment: .leading, spacing: 10) {
-                            if let selectedId = selectedSongId,
-                               let selectedItem = loginManager.cloudSongs.first(where: { $0.id == selectedId }) {
-                                Text("已选中: \(selectedItem.name)")
-                                
-                                HStack {
-                                    Text("歌曲ID:")
-                                    Text(selectedItem.id)
-                                        .foregroundColor(.secondary)
-                                }
-                                
-                                HStack {
-                                    TextField("匹配歌曲ID", text: $matchInputText)
-                                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                                    
-                                    Button("确认匹配") {
-                                        performMatch()
-                                    }
-                                    .disabled(selectedSongId == nil || matchInputText.isEmpty || isMatching)
-                                }
-                            } else {
-                                Text("请选择歌曲")
-                                    .foregroundColor(.gray)
-                            }
-                        }
-                        .frame(height: 100)
-                        .padding(.horizontal)
+                            .frame(height: geometry.size.height * 0.8) // 增加表格高度
                         
                         if isMatching {
                             ProgressView()
@@ -139,7 +108,7 @@ struct ContentView: View {
                 }
             }
         }
-        .frame(minWidth: 550, minHeight: 500)
+        .frame(minWidth: 800, minHeight: 500)
         .onAppear {
             if loginManager.isLoggedIn {
                 loginManager.fetchCloudSongs()
@@ -149,16 +118,16 @@ struct ContentView: View {
         }
     }
     
-    private func performMatch() {
-        guard let selectedId = selectedSongId, !matchInputText.isEmpty else {
-            matchResult = "请选择一首歌曲并输入匹配ID"
+    private func performMatch(cloudSongId: String, matchSongId: String) {
+        guard !matchSongId.isEmpty else {
+            matchResult = "请输入匹配ID"
             return
         }
         
         isMatching = true
         matchResult = nil
         
-        loginManager.matchCloudSong(cloudSongId: selectedId, matchSongId: matchInputText) { success, message in
+        loginManager.matchCloudSong(cloudSongId: cloudSongId, matchSongId: matchSongId) { success, message in
             DispatchQueue.main.async {
                 isMatching = false
                 matchResult = message
@@ -464,45 +433,98 @@ struct VisualEffectView: NSViewRepresentable {
 
 // 云盘歌曲表格视图
 struct CloudSongTableView: View {
-    // 绑定云盘歌曲数组
     @Binding var songs: [CloudSong]
-    // 绑定选中的歌曲ID
-    @Binding var selectedSongId: String?
-    // 绑定搜索文本
     @Binding var searchText: String
-    // 初始排序顺序，按上传时间倒序
     @State private var sortOrder = [KeyPathComparator(\CloudSong.addTime, order: .reverse)]
+    @State private var editingId: String?
+    @State private var tempEditId: String = "" // 新增临时编辑ID
+    var performMatch: (String, String) -> Void
 
     var body: some View {
-        // 创建表格视图
-        Table(filteredSongs, selection: $selectedSongId, sortOrder: $sortOrder) {
-            // 封面列
-            TableColumn("封面", value: \.picUrl) { song in
-                // 异步加载图片
-                AsyncImage(url: URL(string: song.picUrl)) { image in
-                    image.resizable()
-                        .aspectRatio(contentMode: .fit)
-                } placeholder: {
-                    // 图片加载前显示灰色占位符
-                    Color.gray
+        Table(filteredSongs, sortOrder: $sortOrder) {
+            // 序号列
+            TableColumn("#", value: \.id) { song in
+                Text(String(format: "%02d", filteredSongs.firstIndex(where: { $0.id == song.id })! + 1))
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
+            .width(20)
+
+            // 可编辑的歌曲ID列
+            TableColumn("歌曲ID", value: \.id) { song in
+                ZStack {
+                    if editingId == song.id {
+                        TextField("", text: $tempEditId) // 使用临时编辑ID
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .onAppear {
+                                tempEditId = song.id // 初始化临时编辑ID
+                            }
+                            .onAppear {
+                                DispatchQueue.main.async {
+                                    NSApp.keyWindow?.makeFirstResponder(nil)
+                                }
+                            }
+                            .onSubmit {
+                                if let index = songs.firstIndex(where: { $0.id == song.id }) {
+                                    songs[index].id = tempEditId // 更新实际ID
+                                    performMatch(song.id, tempEditId) // 发起匹配
+                                }
+                                editingId = nil
+                            }
+                            .onExitCommand {
+                                editingId = nil
+                            }
+                    } else {
+                        Text(song.id)
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
-                // 设置图片大小
-                .frame(width: 16, height: 16)
-                // 设置圆角
-                .cornerRadius(2)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    editingId = song.id
+                }
+            }
+            .width(min: 120, ideal: 150)
+
+            // 歌曲信息列（包含封面、歌曲名和艺术家）
+            TableColumn("歌曲信息", value: \.name) { song in
+                HStack(spacing: 10) {
+                    // 封面
+                    AsyncImage(url: URL(string: song.picUrl)) { image in
+                        image.resizable()
+                            .aspectRatio(contentMode: .fit)
+                    } placeholder: {
+                        Color.gray
+                    }
+                    .frame(width: 30, height: 30)
+                    .cornerRadius(4)
+                    
+                    // 歌曲名和艺术家
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(song.name)
+                            .font(.system(size: 12))
+                            .lineLimit(1)
+                        Text(song.artist)
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+                }
             }
             // 设置列宽度
-            .width(min: 20, ideal: 30)
+            .width(min: 120, ideal: 120)
 
-            // 歌曲名列
-            TableColumn("歌曲名", value: \.name)
-                // 设置列宽度
-                .width(min: 80, ideal: 100)
-
-            // 艺术家列
-            TableColumn("艺术家", value: \.artist)
-                // 设置列宽度
-                .width(min: 50, ideal: 80)
+            // 专辑列
+            TableColumn("专辑", value: \.album) { song in
+                Text(song.album)
+                    .font(.system(size: 12))
+                    .lineLimit(1)
+            }
+            // 设置列宽度
+            .width(min: 50, ideal: 50)
 
             // 上传时间列
             TableColumn("上传时间", value: \.addTime) { song in
@@ -544,6 +566,12 @@ struct CloudSongTableView: View {
             }
             // 设置列宽度
             .width(min: 60, ideal: 100)
+
+            // 时长列
+            TableColumn("时长", value: \.duration) { song in
+                Text(formatDuration(song.duration))
+            }
+            .width(min: 50, ideal: 60)
         }
         // 监听排序顺序变化
         .onChange(of: sortOrder) { newValue in
@@ -599,6 +627,14 @@ struct CloudSongTableView: View {
         formatter.countStyle = .file
         return formatter.string(fromByteCount: size)
     }
+
+    // 格式化时长的辅助函数
+    private func formatDuration(_ milliseconds: Int) -> String {
+        let totalSeconds = milliseconds / 1000
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
 }
 
 extension View {
@@ -612,4 +648,6 @@ extension View {
         }
     }
 }
+
+
 
