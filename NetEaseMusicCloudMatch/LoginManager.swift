@@ -336,7 +336,7 @@ class LoginManager: ObservableObject {
                             // 保存用户信息
                             self.saveUserInfo()
                             
-                            // 登录成功后自动获云盘歌曲
+                            // 登录成功后自动获歌曲
                             self.fetchCloudSongs()
                         }
                     } else {
@@ -369,7 +369,7 @@ class LoginManager: ObservableObject {
                         print("头像成功下载并设，大小: \(image.size)")
                     }
                 } else {
-                    print("法从数据创建 NSImage")
+                    print("法从创建 NSImage")
                 }
             } else {
                 print("没有收到头像数据")
@@ -451,22 +451,28 @@ class LoginManager: ObservableObject {
                 return
             }
             
-            
             do {
                 if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
                     print("解析后的云盘歌曲 JSON: \(json)")
                     if let code = json["code"] as? Int, code == 200,
                        let data = json["data"] as? [[String: Any]] {
+                        print("API 返回的歌曲数量: \(data.count)")
+                        
+                        
                         let songs = data.compactMap { CloudSong(json: $0) }
+                        print("成功解析的歌曲数量: \(songs.count)")
                         DispatchQueue.main.async {
                             self.cloudSongs = songs
                             print("成功获取 \(songs.count) 首云盘歌曲")
-                            print("歌曲列表: \(songs)")
+                            print("歌曲列表:")
+                            for (index, song) in songs.enumerated() {
+                                print("\(index + 1). \(song.name) - \(song.artist)")
+                            }
                         }
                     } else {
                         print("无法从 JSON 中解析出云盘歌曲数据")
                         if let code = json["code"] as? Int {
-                            print("回的错误代码: \(code)")
+                            print("返回的错误代码: \(code)")
                         }
                         if let message = json["message"] as? String {
                             print("返回的错误信息: \(message)")
@@ -543,7 +549,7 @@ class LoginManager: ObservableObject {
         
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
-                print("匹配请求失败: \(error.localizedDescription)")
+                print("匹配请求败: \(error.localizedDescription)")
                 completion(false, "匹配请求失败: \(error.localizedDescription)")
                 return
             }
@@ -588,7 +594,7 @@ class LoginManager: ObservableObject {
     }
 }
 
-struct CloudSong: Identifiable {
+struct CloudSong: Identifiable, Equatable, Comparable {
     let id: String
     let name: String
     let artist: String
@@ -598,36 +604,91 @@ struct CloudSong: Identifiable {
     let bitrate: Int
     let addTime: Date
     let picUrl: String
-    var matchStatus: MatchStatus = .notMatched  // 新增字段
+    var matchStatus: MatchStatus = .notMatched
     
-    enum MatchStatus {
+    enum MatchStatus: Equatable {
         case notMatched
         case matched
         case failed(String)
+        
+        static func == (lhs: MatchStatus, rhs: MatchStatus) -> Bool {
+            switch (lhs, rhs) {
+            case (.notMatched, .notMatched), (.matched, .matched):
+                return true
+            case let (.failed(lhsMessage), .failed(rhsMessage)):
+                return lhsMessage == rhsMessage
+            default:
+                return false
+            }
+        }
     }
     
     init?(json: [String: Any]) {
         guard let simpleSong = json["simpleSong"] as? [String: Any],
               let id = simpleSong["id"] as? Int,
-              let name = simpleSong["name"] as? String,
-              let ar = simpleSong["ar"] as? [[String: Any]],
-              let al = simpleSong["al"] as? [String: Any],
-              let fileName = json["fileName"] as? String,
-              let fileSize = json["fileSize"] as? Int64,
-              let bitrate = json["bitrate"] as? Int,
-              let addTime = json["addTime"] as? Int64 else {
+              let name = simpleSong["name"] as? String else {
             return nil
         }
         
         self.id = String(id)
         self.name = name
-        self.artist = ar.first?["name"] as? String ?? "未知艺术家"
-        self.album = al["name"] as? String ?? "未知专辑"
-        self.fileName = fileName
-        self.fileSize = fileSize
-        self.bitrate = bitrate
-        self.addTime = Date(timeIntervalSince1970: TimeInterval(addTime) / 1000)
-        self.picUrl = al["picUrl"] as? String ?? ""  // 新增解析
+        
+        // 处理艺术家信息
+        if let ar = simpleSong["ar"] as? [[String: Any]], let firstArtist = ar.first {
+            self.artist = firstArtist["name"] as? String ?? "未知艺术家"
+        } else {
+            self.artist = json["artist"] as? String ?? "未知艺术家"
+        }
+        
+        // 处理专辑信息
+        if let al = simpleSong["al"] as? [String: Any] {
+            self.album = al["name"] as? String ?? "未知专辑"
+            self.picUrl = al["picUrl"] as? String ?? ""
+        } else {
+            self.album = json["album"] as? String ?? "未知专辑"
+            self.picUrl = ""
+        }
+        
+        self.fileName = json["fileName"] as? String ?? ""
+        self.fileSize = json["fileSize"] as? Int64 ?? 0
+        self.bitrate = json["bitrate"] as? Int ?? 0
+        
+        if let addTime = json["addTime"] as? Int64 {
+            self.addTime = Date(timeIntervalSince1970: TimeInterval(addTime) / 1000)
+        } else {
+            self.addTime = Date()
+        }
+    }
+    
+    static func < (lhs: CloudSong, rhs: CloudSong) -> Bool {
+        lhs.addTime < rhs.addTime
+    }
+
+    static func compare(_ lhs: CloudSong, _ rhs: CloudSong, by comparators: [KeyPathComparator<CloudSong>]) -> ComparisonResult {
+        for comparator in comparators {
+            let result = comparator.compare(lhs, rhs)
+            if result != .orderedSame {
+                print("Comparing \(lhs.name) with \(rhs.name) using \(comparator.keyPath): \(result)")
+                return result
+            }
+        }
+        print("All comparisons were equal for \(lhs.name) and \(rhs.name)")
+        return .orderedSame
+    }
+
+    static func == (lhs: CloudSong, rhs: CloudSong) -> Bool {
+        lhs.id == rhs.id
+    }
+}
+
+extension CloudSong.MatchStatus: Comparable {
+    static func < (lhs: CloudSong.MatchStatus, rhs: CloudSong.MatchStatus) -> Bool {
+        switch (lhs, rhs) {
+        case (.notMatched, .matched), (.notMatched, .failed), (.failed, .matched):
+            return true
+        case (.matched, _), (_, .notMatched), (.failed, .failed):
+            return false
+        }
     }
 }
 
@@ -692,4 +753,6 @@ extension String {
 private func RandomIp() -> String {
     return (1...4).map { _ in String(Int.random(in: 1...255)) }.joined(separator: ".")
 }
+
+
 
