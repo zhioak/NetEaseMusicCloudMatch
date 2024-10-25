@@ -463,11 +463,6 @@ class LoginManager: ObservableObject {
                         print("成功解析的歌曲数量: \(songs.count)")
                         DispatchQueue.main.async {
                             self.cloudSongs = songs
-                            print("成功获取 \(songs.count) 首云盘歌曲")
-                            print("歌曲列表:")
-                            for (index, song) in songs.enumerated() {
-                                print("\(index + 1). \(song.name) - \(song.artist)")
-                            }
                         }
                     } else {
                         print("无法从 JSON 中解析出云盘歌曲数据")
