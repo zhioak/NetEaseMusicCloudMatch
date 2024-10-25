@@ -14,10 +14,11 @@ enum SortOrder {
 
 // 在文件顶部，ContentView 结构体之外定义这些常量
 private let coverColumnMinWidth: CGFloat = 30  // 封面列最小宽度
-private let nameColumnMinWidth: CGFloat = 200   // 歌曲名列最小宽度
-private let artistColumnMinWidth: CGFloat = 150 // 艺术家列最小宽度
-private let addTimeColumnMinWidth: CGFloat = 150 // 上传时间列最小宽度
-private let statusColumnMinWidth: CGFloat = 100 // 状态列最小宽度
+private let nameColumnMinWidth: CGFloat = 180   // 歌曲名列最小宽度
+private let artistColumnMinWidth: CGFloat = 120 // 艺术家列最小宽度
+private let addTimeColumnMinWidth: CGFloat = 120 // 上传时间列最小宽度
+private let fileSizeColumnMinWidth: CGFloat = 80 // 文件大小列最小宽度
+private let matchStatusColumnMinWidth: CGFloat = 100 // 匹配状态列最小宽度
 private let columnPadding: CGFloat = 8
 
 // 主视图
@@ -42,7 +43,7 @@ struct ContentView: View {
                     VStack(alignment: .leading, spacing: 8) {  // 将 spacing 调整为 8
                         // 用户信息和搜索栏
                         HStack {
-                            // 用户头像和用户名
+                            // 用户头像、用户名和注销按钮
                             HStack(spacing: 10) {
                                 if let avatar = loginManager.userAvatar {
                                     Image(nsImage: avatar)
@@ -56,15 +57,18 @@ struct ContentView: View {
                                         .frame(width: 30, height: 30)
                                         .cornerRadius(4)
                                 }
-                                Text(loginManager.username)
-                                    .fontWeight(.medium)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(loginManager.username)
+                                        .fontWeight(.medium)
+                                    Button("Sign Out") {
+                                        loginManager.logout()
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    .foregroundColor(.blue)
+                                    .font(.caption)
+                                }
                             }
                             
-                            // 注销按钮
-                            Button("注销") {
-                                loginManager.logout()
-                            }
-                            .padding(.leading, 10)
                             Spacer()
                             
                             // 搜索栏
@@ -73,11 +77,23 @@ struct ContentView: View {
                                     .foregroundColor(.secondary)
                                 TextField("搜索音乐", text: $searchText)
                                     .textFieldStyle(PlainTextFieldStyle())
-                                    .frame(width: 200)
+                                    .frame(width: 100)
                             }
                             .padding(6)
                             .background(Color.secondary.opacity(0.1))
                             .cornerRadius(8)
+                            
+                            // 刷新按钮
+                            Button(action: {
+                                print("开始加载云盘音乐")
+                                loginManager.fetchCloudSongs()
+                            }) {
+                                Image(systemName: "arrow.clockwise")
+                                    .foregroundColor(.blue)
+                                    .font(.system(size: 16))  // 调整图标大小
+                            }
+                            .buttonStyle(PlainButtonStyle())  // 使用PlainButtonStyle移除按钮边框
+                            .padding(.leading, 10)
                         }
                         .padding(.horizontal)
                         .padding(.vertical, 8)  // 调整垂直方向的内边距
@@ -98,7 +114,7 @@ struct ContentView: View {
                                 
                                 Divider().frame(height: 20).background(Color.primary.opacity(0.2))
                                 
-                                // 艺术家列
+                                // 术家列
                                 SortableColumnHeader(title: SortColumn.artist.rawValue, currentSort: $sortColumn, currentOrder: $sortOrder, column: .artist, width: columnWidth(for: artistColumnMinWidth, totalWidth: geometry.size.width))
                                 
                                 Divider().frame(height: 20).background(Color.primary.opacity(0.2))
@@ -108,11 +124,17 @@ struct ContentView: View {
                                 
                                 Divider().frame(height: 20).background(Color.primary.opacity(0.2))
                                 
-                                // 状态列
-                                Text("状态")
+                                // 添加文件大小列
+                                Text("文件大小")
                                     .font(.headline)
-                                    .frame(width: columnWidth(for: statusColumnMinWidth, totalWidth: geometry.size.width) - 2 * columnPadding, alignment: .leading)
-                                    .padding(.horizontal, columnPadding)
+                                    .frame(width: columnWidth(for: fileSizeColumnMinWidth, totalWidth: geometry.size.width), alignment: .center)
+                                
+                                Divider().frame(height: 20).background(Color.primary.opacity(0.2))
+                                
+                                // 添加匹配状态列
+                                Text("匹配状态")
+                                    .font(.headline)
+                                    .frame(width: columnWidth(for: matchStatusColumnMinWidth, totalWidth: geometry.size.width), alignment: .center)
                             }
                             .frame(height: 30)
                             .background(VisualEffectView(material: .headerView, blendingMode: .behindWindow))
@@ -128,7 +150,8 @@ struct ContentView: View {
                                                      nameWidth: columnWidth(for: nameColumnMinWidth, totalWidth: geometry.size.width),
                                                      artistWidth: columnWidth(for: artistColumnMinWidth, totalWidth: geometry.size.width),
                                                      addTimeWidth: columnWidth(for: addTimeColumnMinWidth, totalWidth: geometry.size.width),
-                                                     statusWidth: columnWidth(for: statusColumnMinWidth, totalWidth: geometry.size.width))
+                                                     fileSizeWidth: columnWidth(for: fileSizeColumnMinWidth, totalWidth: geometry.size.width),
+                                                     matchStatusWidth: columnWidth(for: matchStatusColumnMinWidth, totalWidth: geometry.size.width))
                                             .onTapGesture {
                                                 selectedMusicItemId = song.id
                                             }
@@ -180,34 +203,34 @@ struct ContentView: View {
                         }
                         
                         // 功能按钮
-                        HStack {
-                            Button("加载云盘音乐") {
-                                print("开始加载云盘音乐")
-                                loginManager.fetchCloudSongs()
-                            }
-                            Button("开始匹配") {
-                                guard let selectedId = selectedMusicItemId, !matchInputText.isEmpty else {
-                                    matchResult = "请选择一首歌曲并输匹ID"
-                                    return
-                                }
+                        // HStack {
+                        //     Button("加载云盘音乐") {
+                        //         print("开始加载云盘音乐")
+                        //         loginManager.fetchCloudSongs()
+                        //     }
+                        //     Button("开始匹配") {
+                        //         guard let selectedId = selectedMusicItemId, !matchInputText.isEmpty else {
+                        //             matchResult = "请选择一首歌曲并输匹ID"
+                        //             return
+                        //         }
                                 
-                                isMatching = true
-                                matchResult = nil
+                        //         isMatching = true
+                        //         matchResult = nil
                                 
-                                loginManager.matchCloudSong(cloudSongId: selectedId, matchSongId: matchInputText) { success, message in
-                                    DispatchQueue.main.async {
-                                        isMatching = false
-                                        matchResult = message
-                                        if success {
-                                            // 匹配成功后刷新云盘歌曲列表
-                                            loginManager.fetchCloudSongs()
-                                        }
-                                    }
-                                }
-                            }
-                            .disabled(selectedMusicItemId == nil || matchInputText.isEmpty || isMatching)
-                        }
-                        .padding()
+                        //         loginManager.matchCloudSong(cloudSongId: selectedId, matchSongId: matchInputText) { success, message in
+                        //             DispatchQueue.main.async {
+                        //                 isMatching = false
+                        //                 matchResult = message
+                        //                 if success {
+                        //                     // 匹配成功后刷新云盘歌曲列表
+                        //                     loginManager.fetchCloudSongs()
+                        //                 }
+                        //             }
+                        //         }
+                        //     }
+                        //     .disabled(selectedMusicItemId == nil || matchInputText.isEmpty || isMatching)
+                        // }
+                        // .padding()
 
                         Spacer() // 添加这行，将所有内容推到顶部
                     }
@@ -263,7 +286,7 @@ struct ContentView: View {
     
     // 添加计算列宽的函数
     private func columnWidth(for minWidth: CGFloat, totalWidth: CGFloat) -> CGFloat {
-        let totalMinWidth = coverColumnMinWidth + nameColumnMinWidth + artistColumnMinWidth + addTimeColumnMinWidth + statusColumnMinWidth
+        let totalMinWidth = coverColumnMinWidth + nameColumnMinWidth + artistColumnMinWidth + addTimeColumnMinWidth + fileSizeColumnMinWidth + matchStatusColumnMinWidth
         let extraWidth = max(0, totalWidth - totalMinWidth)
         return minWidth + (minWidth / totalMinWidth) * extraWidth
     }
@@ -357,7 +380,8 @@ struct SearchBar: View {
         HStack {
             TextField("搜索音乐", text: $text)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-            Button("搜索") {
+            Button("搜索1") {
+                
                 // TODO: 实现搜索功能
             }
         }
@@ -430,7 +454,8 @@ struct CloudSongRow: View {
     let nameWidth: CGFloat
     let artistWidth: CGFloat
     let addTimeWidth: CGFloat
-    let statusWidth: CGFloat
+    let fileSizeWidth: CGFloat
+    let matchStatusWidth: CGFloat
     
     @Environment(\.colorScheme) var colorScheme
     
@@ -468,9 +493,32 @@ struct CloudSongRow: View {
                     .lineLimit(1)
                     .padding(.horizontal, columnPadding)
             
-                Text("未匹配")
-                    .frame(width: statusWidth - 2 * columnPadding, alignment: .leading)
+                Text(formatFileSize(song.fileSize))
+                    .frame(width: fileSizeWidth - 2 * columnPadding, alignment: .trailing)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
                     .padding(.horizontal, columnPadding)
+            
+                // 添加匹配状态列
+                HStack {
+                    switch song.matchStatus {
+                    case .matched:
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                    case .failed(let errorMessage):
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.red)
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    case .notMatched:
+                        EmptyView()
+                    }
+                }
+                .frame(width: matchStatusWidth - 2 * columnPadding, alignment: .leading)
+                .padding(.horizontal, columnPadding)
             }
             .foregroundColor(textColor)
         }
@@ -495,6 +543,13 @@ struct CloudSongRow: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm"
         return formatter.string(from: date)
+    }
+    
+    private func formatFileSize(_ size: Int64) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useKB, .useMB, .useGB]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: size)
     }
 }
 
@@ -528,3 +583,4 @@ struct VisualEffectView: NSViewRepresentable {
         visualEffectView.blendingMode = blendingMode
     }
 }
+

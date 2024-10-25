@@ -336,7 +336,7 @@ class LoginManager: ObservableObject {
                             // 保存用户信息
                             self.saveUserInfo()
                             
-                            // 登录成功后自动获取云盘歌曲
+                            // 登录成功后自动获云盘歌曲
                             self.fetchCloudSongs()
                         }
                     } else {
@@ -369,7 +369,7 @@ class LoginManager: ObservableObject {
                         print("头像成功下载并设，大小: \(image.size)")
                     }
                 } else {
-                    print("无法从数据创建 NSImage")
+                    print("法从数据创建 NSImage")
                 }
             } else {
                 print("没有收到头像数据")
@@ -430,7 +430,6 @@ class LoginManager: ObservableObject {
         request.httpBody = parameters.percentEncoded()
         
         print("请求URL: \(urlString)")
-        print("请求方法: \(request.httpMethod ?? "Unknown")")
         print("请求头: \(request.allHTTPHeaderFields ?? [:])")
         print("请求体: \(String(data: request.httpBody ?? Data(), encoding: .utf8) ?? "None")")
         
@@ -503,7 +502,18 @@ class LoginManager: ObservableObject {
         }
         
         // 直接送匹配请求，不再预先检查匹配歌曲ID
-        sendMatchRequest(cloudSongId: cloudSongId, matchSongId: matchSongId, completion: completion)
+        sendMatchRequest(cloudSongId: cloudSongId, matchSongId: matchSongId) { success, message in
+            DispatchQueue.main.async {
+                if let index = self.cloudSongs.firstIndex(where: { $0.id == cloudSongId }) {
+                    if success {
+                        self.cloudSongs[index].matchStatus = .matched
+                    } else {
+                        self.cloudSongs[index].matchStatus = .failed(message)
+                    }
+                }
+                completion(success, message)
+            }
+        }
     }
     
     private func sendMatchRequest(cloudSongId: String, matchSongId: String, completion: @escaping (Bool, String) -> Void) {
@@ -587,7 +597,14 @@ struct CloudSong: Identifiable {
     let fileSize: Int64
     let bitrate: Int
     let addTime: Date
-    let picUrl: String  // 新增字段
+    let picUrl: String
+    var matchStatus: MatchStatus = .notMatched  // 新增字段
+    
+    enum MatchStatus {
+        case notMatched
+        case matched
+        case failed(String)
+    }
     
     init?(json: [String: Any]) {
         guard let simpleSong = json["simpleSong"] as? [String: Any],
