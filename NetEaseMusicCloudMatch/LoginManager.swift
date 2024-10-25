@@ -424,7 +424,7 @@ class LoginManager: ObservableObject {
         }
         
         let parameters: [String: Any] = [
-            "limit": 1000,
+            "limit": 2,
             "offset": 0
         ]
         request.httpBody = parameters.percentEncoded()
