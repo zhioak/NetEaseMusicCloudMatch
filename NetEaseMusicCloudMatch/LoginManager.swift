@@ -587,6 +587,7 @@ struct CloudSong: Identifiable {
     let fileSize: Int64
     let bitrate: Int
     let addTime: Date
+    let picUrl: String  // 新增字段
     
     init?(json: [String: Any]) {
         guard let simpleSong = json["simpleSong"] as? [String: Any],
@@ -609,6 +610,7 @@ struct CloudSong: Identifiable {
         self.fileSize = fileSize
         self.bitrate = bitrate
         self.addTime = Date(timeIntervalSince1970: TimeInterval(addTime) / 1000)
+        self.picUrl = al["picUrl"] as? String ?? ""  // 新增解析
     }
 }
 

@@ -13,11 +13,12 @@ enum SortOrder {
 }
 
 // 在文件顶部，ContentView 结构体之外定义这些常量
-private let nameColumnWidth: CGFloat = 160
-private let artistColumnWidth: CGFloat = 110
-private let addTimeColumnWidth: CGFloat = 130
-private let statusColumnWidth: CGFloat = 70
-private let columnPadding: CGFloat = 10
+private let coverColumnPercentage: CGFloat = 0.05  // 5%
+private let nameColumnPercentage: CGFloat = 0.30   // 30%
+private let artistColumnPercentage: CGFloat = 0.20 // 20%
+private let addTimeColumnPercentage: CGFloat = 0.25 // 25%
+private let statusColumnPercentage: CGFloat = 0.20 // 20%
+private let columnPadding: CGFloat = 8
 
 // 主视图
 struct ContentView: View {
@@ -84,57 +85,64 @@ struct ContentView: View {
                     // 音乐列表
                     VStack(spacing: 0) {
                         // 表头区域
-                        ZStack {
-                            VisualEffectView(material: .headerView, blendingMode: .behindWindow)
-                            
-                            HStack(spacing: 0) {
-                                // 歌曲名称列
-                                SortableColumnHeader(title: SortColumn.name.rawValue, currentSort: $sortColumn, currentOrder: $sortOrder, column: .name, width: nameColumnWidth)
+                        GeometryReader { geometry in
+                            ZStack {
+                                VisualEffectView(material: .headerView, blendingMode: .behindWindow)
                                 
-                                Divider().frame(height: 20).background(Color.primary.opacity(0.2))
-                                
-                                // 艺术家列
-                                SortableColumnHeader(title: SortColumn.artist.rawValue, currentSort: $sortColumn, currentOrder: $sortOrder, column: .artist, width: artistColumnWidth)
-                                
-                                Divider().frame(height: 20).background(Color.primary.opacity(0.2))
-                                
-                                // 添加时间列
-                                SortableColumnHeader(title: SortColumn.addTime.rawValue, currentSort: $sortColumn, currentOrder: $sortOrder, column: .addTime, width: addTimeColumnWidth)
-                                
-                                Divider().frame(height: 20).background(Color.primary.opacity(0.2))
-                                
-                                // 状态列
-                                HStack {
+                                HStack(spacing: 0) {
+                                    // 封面列
+                                    Text("封面")
+                                        .font(.headline)
+                                        .frame(width: columnWidth(for: coverColumnPercentage, totalWidth: geometry.size.width), alignment: .center)
+                                    
+                                    Divider().frame(height: 20).background(Color.primary.opacity(0.2))
+                                    
+                                    // 歌曲名称列
+                                    SortableColumnHeader(title: SortColumn.name.rawValue, currentSort: $sortColumn, currentOrder: $sortOrder, column: .name, width: columnWidth(for: nameColumnPercentage, totalWidth: geometry.size.width))
+                                    
+                                    Divider().frame(height: 20).background(Color.primary.opacity(0.2))
+                                    
+                                    // 艺术家列
+                                    SortableColumnHeader(title: SortColumn.artist.rawValue, currentSort: $sortColumn, currentOrder: $sortOrder, column: .artist, width: columnWidth(for: artistColumnPercentage, totalWidth: geometry.size.width))
+                                    
+                                    Divider().frame(height: 20).background(Color.primary.opacity(0.2))
+                                    
+                                    // 添加时间列
+                                    SortableColumnHeader(title: SortColumn.addTime.rawValue, currentSort: $sortColumn, currentOrder: $sortOrder, column: .addTime, width: columnWidth(for: addTimeColumnPercentage, totalWidth: geometry.size.width))
+                                    
+                                    Divider().frame(height: 20).background(Color.primary.opacity(0.2))
+                                    
+                                    // 状态列
                                     Text("状态")
                                         .font(.headline)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .frame(width: columnWidth(for: statusColumnPercentage, totalWidth: geometry.size.width) - 2 * columnPadding, alignment: .leading)
+                                        .padding(.horizontal, columnPadding)
                                 }
-                                .padding(.horizontal, columnPadding)
-                                .frame(width: statusColumnWidth)
-
-                                Spacer(minLength: 0)
                             }
+                            .frame(height: 30)
                         }
                         .frame(height: 30)
 
                         // 列表区域
-                        ScrollView {
-                            VStack(spacing: 0) {
-                                ForEach(Array(sortedSongs.enumerated()), id: \.element.id) { index, song in
-                                    CloudSongRow(song: song, 
-                                                 isEven: index % 2 == 0, 
-                                                 isSelected: song.id == selectedMusicItemId,
-                                                 nameWidth: nameColumnWidth,
-                                                 artistWidth: artistColumnWidth,
-                                                 addTimeWidth: addTimeColumnWidth,
-                                                 statusWidth: statusColumnWidth)
-                                        .onTapGesture {
-                                            selectedMusicItemId = song.id
-                                        }
+                        GeometryReader { geometry in
+                            ScrollView {
+                                VStack(spacing: 0) {
+                                    ForEach(Array(sortedSongs.enumerated()), id: \.element.id) { index, song in
+                                        CloudSongRow(song: song, 
+                                                     isEven: index % 2 == 0, 
+                                                     isSelected: song.id == selectedMusicItemId,
+                                                     coverWidth: columnWidth(for: coverColumnPercentage, totalWidth: geometry.size.width),
+                                                     nameWidth: columnWidth(for: nameColumnPercentage, totalWidth: geometry.size.width),
+                                                     artistWidth: columnWidth(for: artistColumnPercentage, totalWidth: geometry.size.width),
+                                                     addTimeWidth: columnWidth(for: addTimeColumnPercentage, totalWidth: geometry.size.width),
+                                                     statusWidth: columnWidth(for: statusColumnPercentage, totalWidth: geometry.size.width))
+                                            .onTapGesture {
+                                                selectedMusicItemId = song.id
+                                            }
+                                    }
                                 }
                             }
                         }
-                        .frame(maxWidth: .infinity)
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 250)
@@ -164,7 +172,7 @@ struct ContentView: View {
                                 .disabled(selectedMusicItemId == nil || matchInputText.isEmpty || isMatching)
                             }
                         } else {
-                            Text("请选择一歌曲")
+                            Text("请选择歌曲")
                                 .foregroundColor(.gray)
                         }
                     }
@@ -213,8 +221,8 @@ struct ContentView: View {
                 }
             }
         }
-        .frame(width: 500)
-        .frame(minHeight: 500, maxHeight: .infinity, alignment: .top) // 修改这行
+        .frame(width: 550)  // 增加整体宽度
+        .frame(minHeight: 500, maxHeight: .infinity, alignment: .top)
         .onAppear {
             if !loginManager.isLoggedIn {
                 loginManager.startLoginProcess()
@@ -260,6 +268,10 @@ struct ContentView: View {
             }
         }
     }
+    
+    private func columnWidth(for percentage: CGFloat, totalWidth: CGFloat) -> CGFloat {
+        return totalWidth * percentage
+    }
 }
 
 struct SortableColumnHeader: View {
@@ -302,7 +314,7 @@ struct LoginView: View {
     
     var body: some View {
         VStack {
-            Text("请使用网易云音乐 App 扫描二维码登录")
+            Text("请使用网易音乐 App 扫描二维码登录")
                 .padding()
             
             ZStack {
@@ -377,7 +389,7 @@ struct MusicItemRow: View {
             Text(item.artist)
             Spacer()
             Text(item.matchStatus)
-        }
+        }我用swift写了一个布局，宽高都是写死的，但是我发现窗口可以放大缩小，而我的app不可以，怎么适配这种
     }
 }
 
@@ -419,6 +431,7 @@ struct CloudSongRow: View {
     let song: CloudSong
     let isEven: Bool
     let isSelected: Bool
+    let coverWidth: CGFloat
     let nameWidth: CGFloat
     let artistWidth: CGFloat
     let addTimeWidth: CGFloat
@@ -434,6 +447,17 @@ struct CloudSongRow: View {
             
             // 内容层
             HStack(spacing: 0) {
+                // 封面图片
+                AsyncImage(url: URL(string: song.picUrl)) { image in
+                    image.resizable()
+                        .aspectRatio(contentMode: .fit)
+                } placeholder: {
+                    Color.gray
+                }
+                .frame(width: 16, height: 16)
+                .cornerRadius(2)
+                .frame(width: coverWidth, alignment: .center)
+                
                 Text(song.name)
                     .frame(width: nameWidth - 2 * columnPadding, alignment: .leading)
                     .lineLimit(1)
@@ -452,12 +476,9 @@ struct CloudSongRow: View {
                 Text("未匹配")
                     .frame(width: statusWidth - 2 * columnPadding, alignment: .leading)
                     .padding(.horizontal, columnPadding)
-                
-                Spacer(minLength: 0)
             }
             .foregroundColor(textColor)
         }
-        .frame(maxWidth: .infinity)
         .frame(height: 30)
     }
     
