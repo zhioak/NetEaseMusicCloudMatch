@@ -461,7 +461,8 @@ struct CloudSongTableView: View {
                             songs: $songs,
                             editingId: $editingId,
                             performMatch: performMatch,
-                            onTab: selectNextRow
+                            onTab: selectNextRow,
+                            onShiftTab: selectPreviousRow
                         )
                     } else {
                         Text(song.id)
@@ -526,31 +527,6 @@ struct CloudSongTableView: View {
             }
             // 设置列宽度
             .width(min: 60, ideal: 80)
-
-            // 匹配状态列
-            TableColumn("匹配状态", value: \.matchStatus) { song in
-                switch song.matchStatus {
-                case .matched:
-                    // 匹配成功显示勾号
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
-                case .failed(let errorMessage):
-                    // 匹配失败显示叉号
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.red)
-                    // 显示错误信息
-                    Text(errorMessage)
-                        .font(.caption)
-                        .foregroundColor(.red)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                case .notMatched:
-                    // 未匹配不显示任何内容
-                    EmptyView()
-                }
-            }
-            // 设置列宽度
-            .width(min: 60, ideal: 100)
 
             // 时长列
             TableColumn("时长", value: \.duration) { song in
@@ -637,6 +613,17 @@ struct CloudSongTableView: View {
             selection = [nextSong.id]
         }
     }
+
+    private func selectPreviousRow() {
+        if let currentId = editingId,
+           let currentIndex = filteredSongs.firstIndex(where: { $0.id == currentId }),
+           currentIndex > 0 {
+            let previousSong = filteredSongs[currentIndex - 1]
+            editingId = previousSong.id
+            tempEditId = previousSong.id
+            selection = [previousSong.id]
+        }
+    }
 }
 
 extension View {
@@ -657,7 +644,8 @@ struct FocusedTextField: NSViewRepresentable {
     
     @Binding var text: String
     var onSubmit: () -> Void
-    var onTab: () -> Void  // 添加 Tab 处理回调
+    var onTab: () -> Void
+    var onShiftTab: () -> Void  // 添加 Shift+Tab 处理回调
     
     func makeNSView(context: Context) -> NSTextField {
         let textField = NSTextField()
@@ -707,6 +695,10 @@ struct FocusedTextField: NSViewRepresentable {
                 parent.onSubmit()
                 return true
             }
+            if commandSelector == #selector(NSResponder.insertBacktab(_:)) {  // 处理 Shift+Tab
+                parent.onShiftTab()
+                return true
+            }
             if commandSelector == #selector(NSResponder.insertTab(_:)) {
                 parent.onTab()
                 return true
@@ -723,7 +715,8 @@ struct EditableTextField: View {
     @Binding var songs: [CloudSong]
     @Binding var editingId: String?
     let performMatch: (String, String) -> Void
-    var onTab: () -> Void  // 添加 Tab 处理回调
+    var onTab: () -> Void
+    var onShiftTab: () -> Void  // 添加 Shift+Tab 处理回调
     
     var body: some View {
         FocusedTextField(text: $text, onSubmit: {
@@ -732,7 +725,7 @@ struct EditableTextField: View {
                 performMatch(song.id, text)
             }
             editingId = nil
-        }, onTab: onTab)  // 传递 Tab 处理回调
+        }, onTab: onTab, onShiftTab: onShiftTab)  // 传递 Shift+Tab 处理回调
         .onAppear {
             text = song.id
         }
