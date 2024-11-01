@@ -437,11 +437,12 @@ struct CloudSongTableView: View {
     @Binding var searchText: String
     @State private var sortOrder = [KeyPathComparator(\CloudSong.addTime, order: .reverse)]
     @State private var editingId: String?
-    @State private var tempEditId: String = "" // 新增临时编辑ID
+    @State private var tempEditId: String = ""
+    @State private var selection: Set<String> = []
     var performMatch: (String, String) -> Void
 
     var body: some View {
-        Table(filteredSongs, sortOrder: $sortOrder) {
+        Table(filteredSongs, selection: $selection, sortOrder: $sortOrder) {
             // 序号列
             TableColumn("#", value: \.id) { song in
                 Text(String(format: "%02d", filteredSongs.firstIndex(where: { $0.id == song.id })! + 1))
@@ -469,10 +470,6 @@ struct CloudSongTableView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    editingId = song.id
-                }
             }
             .width(min: 120, ideal: 150)
 
@@ -559,6 +556,12 @@ struct CloudSongTableView: View {
                 Text(formatDuration(song.duration))
             }
             .width(min: 50, ideal: 60)
+        }
+        .onChange(of: selection) { newSelection in
+            if let selectedId = newSelection.first {
+                editingId = selectedId
+                tempEditId = selectedId
+            }
         }
         // 监听排序顺序变化
         .onChange(of: sortOrder) { newValue in
