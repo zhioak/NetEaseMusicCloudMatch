@@ -460,7 +460,8 @@ struct CloudSongTableView: View {
                             song: song,
                             songs: $songs,
                             editingId: $editingId,
-                            performMatch: performMatch
+                            performMatch: performMatch,
+                            onTab: selectNextRow
                         )
                     } else {
                         Text(song.id)
@@ -625,6 +626,17 @@ struct CloudSongTableView: View {
         let seconds = totalSeconds % 60
         return String(format: "%d:%02d", minutes, seconds)
     }
+
+    private func selectNextRow() {
+        if let currentId = editingId,
+           let currentIndex = filteredSongs.firstIndex(where: { $0.id == currentId }),
+           currentIndex + 1 < filteredSongs.count {
+            let nextSong = filteredSongs[currentIndex + 1]
+            editingId = nextSong.id
+            tempEditId = nextSong.id
+            selection = [nextSong.id]
+        }
+    }
 }
 
 extension View {
@@ -645,6 +657,7 @@ struct FocusedTextField: NSViewRepresentable {
     
     @Binding var text: String
     var onSubmit: () -> Void
+    var onTab: () -> Void  // 添加 Tab 处理回调
     
     func makeNSView(context: Context) -> NSTextField {
         let textField = NSTextField()
@@ -653,7 +666,6 @@ struct FocusedTextField: NSViewRepresentable {
         textField.bezelStyle = .roundedBezel
         textField.font = .systemFont(ofSize: 12)
         
-        // 在创建时就请求焦点
         DispatchQueue.main.async {
             textField.window?.makeFirstResponder(textField)
             textField.selectText(nil)
@@ -695,6 +707,10 @@ struct FocusedTextField: NSViewRepresentable {
                 parent.onSubmit()
                 return true
             }
+            if commandSelector == #selector(NSResponder.insertTab(_:)) {
+                parent.onTab()
+                return true
+            }
             return false
         }
     }
@@ -707,15 +723,16 @@ struct EditableTextField: View {
     @Binding var songs: [CloudSong]
     @Binding var editingId: String?
     let performMatch: (String, String) -> Void
+    var onTab: () -> Void  // 添加 Tab 处理回调
     
     var body: some View {
-        FocusedTextField(text: $text) {
+        FocusedTextField(text: $text, onSubmit: {
             if let index = songs.firstIndex(where: { $0.id == song.id }) {
                 songs[index].id = text
                 performMatch(song.id, text)
             }
             editingId = nil
-        }
+        }, onTab: onTab)  // 传递 Tab 处理回调
         .onAppear {
             text = song.id
         }
