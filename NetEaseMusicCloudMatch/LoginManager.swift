@@ -9,47 +9,51 @@
 import Foundation
 import CoreImage
 import AppKit
-import Security
-import CryptoKit
 
+// LoginManager: 负责处理网易云音乐的登录认证和云盘歌曲管理
+// 使用 ObservableObject 使其可以在 SwiftUI 中作为状态管理器使用
 class LoginManager: ObservableObject {
+    // 使用单例模式确保整个应用只有一个登录管理实例
     static let shared = LoginManager()
     
-    @Published var qrCodeImage: NSImage?
-    @Published var isLoggedIn = false
-    @Published var username = ""
-    @Published var userAvatarURL: URL?
-    @Published var qrCodeStatus: QRCodeStatus = .loading
-    @Published var userAvatar: NSImage?
+    // MARK: - Published 属性
+    // 这些属性使用 @Published 包装器，当值改变时会自动通知 UI 更新
+    @Published var qrCodeImage: NSImage?         // 登录二维码图片
+    @Published var isLoggedIn = false           // 登录状态
+    @Published var username = ""                 // 用户名
+    @Published var userAvatarURL: URL?          // 用户头像URL
+    @Published var qrCodeStatus: QRCodeStatus = .loading  // 二维码状态
+    @Published var userAvatar: NSImage?         // 用户头像图片
+    @Published var cloudSongs: [CloudSong] = [] // 云盘歌曲列表
+    @Published var isLoadingCloudSongs = false  // 是否正在加载云盘歌曲
+    @Published var userId: String = ""          // 用户ID
+    @Published private(set) var isGettingQRCode = false // 是否正在获取二维码
     
-    private var key: String = ""
-    private var qrCodeUrl: String = ""
-    private var timer: Timer?
+    // MARK: - 私有属性
+    private var key: String = ""                // 二维码key
+    private var qrCodeUrl: String = ""          // 二维码URL
+    private var timer: Timer?                   // 用于轮询登录状态的定时器
     
+    // 加密相关的密钥
+    // 这些是网易云音乐API需要的固定值，用于请求加密
     private let secretKey = "TA3YiYCfY2dDJQgg"
     private let encSecKey = "84ca47bca10bad09a6b04c5c927ef077d9b9f1e37098aa3eac6ea70eb59df0aa28b691b7e75e4f1f9831754919ea784c8f74fbfadf2898b0be17849fd656060162857830e241aba44991601f137624094c114ea8d17bce815b0cd4e5b8e2fbaba978c6d1d14dc3d1faf852bdd28818031ccdaaa13a6018e1024e2aae98844210"
     
-    private var userToken: String = ""
+    private var userToken: String = ""          // 用户登录令牌
+    private let loginExpirationDays = 30        // 登录信息过期天数
+    private var isLoadingUserInfo = false       // 是否正在加载用户信息
     
-    private let loginExpirationDays = 30 // 登录信息过期天数，设置为30天
-    
-    private var isLoadingUserInfo = false
-    
-    @Published var cloudSongs: [CloudSong] = []
-    @Published var isLoadingCloudSongs = false
-    
-    @Published var userId: String = ""
-    
-    @Published private(set) var isGettingQRCode = false
-    
+    // MARK: - 枚举定义
+    // 二维码状态枚举
     enum QRCodeStatus {
-        case loading
-        case ready
-        case expired
+        case loading   // 加载中
+        case ready    // 已准备好
+        case expired  // 已过期
     }
     
+    // MARK: - 初始化方法
     private init() {
-        loadUserInfo()
+        loadUserInfo() // 初始化时加载保存的用户信息
     }
     
     func startLoginProcess() {
@@ -66,25 +70,29 @@ class LoginManager: ObservableObject {
         getQRKey()
     }
     
+    // 加载保存的用户信息
     private func loadUserInfo() {
+        // 防止重复加载
         guard !isLoadingUserInfo else { return }
         isLoadingUserInfo = true
         
+        // 从 UserDefaults 获取保存的用户信息
         if let savedUsername = UserDefaults.standard.string(forKey: "username"),
            let savedToken = UserDefaults.standard.string(forKey: "userToken"),
            let savedAvatarURL = UserDefaults.standard.url(forKey: "userAvatarURL"),
            let savedUserId = UserDefaults.standard.string(forKey: "userId"),
            let loginTime = UserDefaults.standard.object(forKey: "loginTime") as? Date {
             
-            // 检查登录是否过期
+            // 检查登录是否在有效期内（30天）
             if Date().timeIntervalSince(loginTime) < Double(loginExpirationDays * 24 * 60 * 60) {
+                // 恢复用户信息
                 username = savedUsername
                 userToken = savedToken
                 userAvatarURL = savedAvatarURL
                 userId = savedUserId
                 isLoggedIn = true
                 
-                // 打印从本地加载的用户信息
+                // 打印调试信息
                 print("本地加载的用户信息:")
                 print("用户名: \(username)")
                 print("用户ID: \(userId)")
@@ -92,7 +100,7 @@ class LoginManager: ObservableObject {
                 print("登录时间: \(loginTime)")
                 print("用户Token: \(userToken)")
                 
-                // 加载头像
+                // 下载用户头像
                 if let avatarURL = userAvatarURL {
                     downloadUserAvatar(from: avatarURL)
                 }
@@ -107,15 +115,19 @@ class LoginManager: ObservableObject {
         isLoadingUserInfo = false
     }
     
+    // 保存用户信息到本地
     private func saveUserInfo() {
+        // 使用 UserDefaults 保存用户信息
         UserDefaults.standard.set(username, forKey: "username")
         UserDefaults.standard.set(userToken, forKey: "userToken")
         UserDefaults.standard.set(userAvatarURL, forKey: "userAvatarURL")
         UserDefaults.standard.set(Date(), forKey: "loginTime")
-        print("用信息已保存")
+        print("用户信息已保存")
     }
     
+    // 清除本地保存的用户信息
     private func clearUserInfo() {
+        // 从 UserDefaults 中移除所有用户相关信息
         UserDefaults.standard.removeObject(forKey: "username")
         UserDefaults.standard.removeObject(forKey: "userToken")
         UserDefaults.standard.removeObject(forKey: "userAvatarURL")
@@ -124,6 +136,7 @@ class LoginManager: ObservableObject {
         print("用户信息已清除")
     }
     
+    // 获取登录二维码的key
     private func getQRKey() {
         print("正在获取二维码 key")
         let urlString = "https://music.163.com/api/login/qrcode/unikey?type=1"
@@ -132,19 +145,24 @@ class LoginManager: ObservableObject {
             return
         }
         
+        // 创建网络请求
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         
+        // 发起网络请求
         URLSession.shared.dataTask(with: request) { data, response, error in
+            // 错误处理
             if let error = error {
                 print("获取二维码 key 时出错: \(error)")
                 return
             }
             
+            // 打印HTTP状态码
             if let httpResponse = response as? HTTPURLResponse {
                 print("HTTP 状态码: \(httpResponse.statusCode)")
             }
             
+            // 处理响应数据
             if let data = data, !data.isEmpty {
                 print("收到的数据: \(String(data: data, encoding: .utf8) ?? "无法解码")")
                 do {
@@ -152,6 +170,7 @@ class LoginManager: ObservableObject {
                         if let code = json["code"] as? Int, code == 200 {
                             if let unikey = json["unikey"] as? String {
                                 print("成功获取二维码 key: \(unikey)")
+                                // 在主线程更新UI
                                 DispatchQueue.main.async {
                                     self.key = unikey
                                     self.getQRCode()
@@ -174,20 +193,31 @@ class LoginManager: ObservableObject {
         }.resume()
     }
     
+    // 生成登录二维码
     private func getQRCode() {
         print("正在生成二维码")
+        // 使用获取到的key构建二维码URL
         qrCodeUrl = "https://music.163.com/login?codekey=\(key)"
+        // 生成二维码图像
         generateQRCode(from: qrCodeUrl)
+        // 更新二维码状态
         qrCodeStatus = .ready
+        // 开始轮询登录状态
         startPolling()
     }
     
+    // 使用CoreImage生成二维码图像
     private func generateQRCode(from string: String) {
+        // 将字符串转换为ASCII编码数据
         let data = string.data(using: String.Encoding.ascii)
+        // 创建二维码生成器
         if let filter = CIFilter(name: "CIQRCodeGenerator") {
+            // 设置二维码内容
             filter.setValue(data, forKey: "inputMessage")
+            // 放大二维码图像，提高清晰度
             let transform = CGAffineTransform(scaleX: 10, y: 10)
             if let output = filter.outputImage?.transformed(by: transform) {
+                // 转换为NSImage以在UI中显示
                 let rep = NSCIImageRep(ciImage: output)
                 let nsImage = NSImage(size: rep.size)
                 nsImage.addRepresentation(rep)
@@ -203,14 +233,18 @@ class LoginManager: ObservableObject {
         }
     }
     
+    // 开始轮询查登录状态
     private func startPolling() {
         print("开始轮询登录状态")
+        // 每3秒检查一次登录状态
         timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
             self.checkLoginStatus()
         }
     }
     
+    // 检查用户是否已扫码登录
     private func checkLoginStatus() {
+        // 如果已登录则停止轮询
         guard !isLoggedIn else {
             stopPolling()
             return
@@ -223,26 +257,32 @@ class LoginManager: ObservableObject {
             return
         }
         
+        // 构建请求
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         
+        // 设置请求参数
         let parameters: [String: Any] = [
             "key": key,
             "type": 1
         ]
         request.httpBody = parameters.percentEncoded()
         
+        // 发起网络请求
         URLSession.shared.dataTask(with: request) { data, response, error in
+            // 错误处理
             if let error = error {
                 print("检查登录状态时出错: \(error)")
                 return
             }
             
+            // 打印HTTP状态码
             if let httpResponse = response as? HTTPURLResponse {
                 print("HTTP 状态码: \(httpResponse.statusCode)")
             }
             
+            // 处理响应数据
             if let data = data, !data.isEmpty {
                 print("收到的数据: \(String(data: data, encoding: .utf8) ?? "无法解码")")
                 do {
@@ -251,7 +291,7 @@ class LoginManager: ObservableObject {
                             print("收到登录状态响应，代码: \(code)")
                             DispatchQueue.main.async {
                                 switch code {
-                                case 803:
+                                case 803: // 登录成功
                                     self.isLoggedIn = true
                                     // 保存userToken
                                     if let cookie = (response as? HTTPURLResponse)?.allHeaderFields["Set-Cookie"] as? String {
@@ -260,15 +300,15 @@ class LoginManager: ObservableObject {
                                     self.stopPolling()
                                     print("登录成功")
                                     self.getUserInfo()
-                                case 800:
+                                case 800: // 二维码过期
                                     if !self.isLoggedIn {
                                         print("二维码过期")
                                         self.qrCodeStatus = .expired
                                         self.stopPolling()
                                     }
-                                default:
+                                default: // 等待扫码
                                     if !self.isLoggedIn {
-                                        print("尚登录，继续等待")
+                                        print("未登录，继续等待")
                                     }
                                 }
                             }
@@ -287,11 +327,13 @@ class LoginManager: ObservableObject {
         }.resume()
     }
     
+    // 停止登录状态轮询
     private func stopPolling() {
         timer?.invalidate()
         timer = nil
     }
     
+    // 获取用户信息
     private func getUserInfo() {
         let urlString = "https://music.163.com/api/nuser/account/get"
         guard let url = URL(string: urlString) else {
@@ -299,10 +341,12 @@ class LoginManager: ObservableObject {
             return
         }
         
+        // 构建请求
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         
+        // 发起网络请求获取用户信息
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("获取用户信息时出错: \(error)")
@@ -311,13 +355,16 @@ class LoginManager: ObservableObject {
             
             if let data = data {
                 do {
+                    // 解析用户信息JSON数据
                     if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
                        let profile = json["profile"] as? [String: Any] {
                         DispatchQueue.main.async {
+                            // 更新用户基本信息
                             self.username = profile["nickname"] as? String ?? "未知用户"
                             self.userId = String(profile["userId"] as? Int ?? 0)
                             UserDefaults.standard.set(self.userId, forKey: "userId")
                             
+                            // 处理用户头像
                             if let avatarUrlString = profile["avatarUrl"] as? String,
                                let avatarUrl = URL(string: avatarUrlString) {
                                 self.userAvatarURL = avatarUrl
@@ -327,16 +374,16 @@ class LoginManager: ObservableObject {
                                 print("无法获取头像 URL")
                             }
                             
-                            // 打印用户信息
+                            // 打印调试信息
                             print("用户信息:")
                             print("用户名: \(self.username)")
-                            print("头URL: \(self.userAvatarURL?.absoluteString ?? "无")")
-                            print("其他信息: \(profile)")
+                            print("头像URL: \(self.userAvatarURL?.absoluteString ?? "无")")
+                            print("他信息: \(profile)")
                             
-                            // 保存用户信息
+                            // 保存用户信息到本地
                             self.saveUserInfo()
                             
-                            // 登录成功后自动获歌曲
+                            // 登录成功后自动获取云盘歌曲
                             self.fetchCloudSongs()
                         }
                     } else {
@@ -349,27 +396,30 @@ class LoginManager: ObservableObject {
         }.resume()
     }
     
+    // 下载用户头像
     private func downloadUserAvatar(from url: URL) {
         print("开始下载头像: \(url)")
         URLSession.shared.dataTask(with: url) { data, response, error in
             if let error = error {
-                print("载头像时出错: \(error)")
+                print("下载头像时出错: \(error)")
                 return
             }
             
+            // 打印HTTP状态码
             if let httpResponse = response as? HTTPURLResponse {
                 print("头像下载 HTTP 状态码: \(httpResponse.statusCode)")
             }
             
+            // 处理头像数据
             if let data = data {
                 print("收到头像数据，大小: \(data.count) 字节")
                 if let image = NSImage(data: data) {
                     DispatchQueue.main.async {
                         self.userAvatar = image
-                        print("头像成功下载并设，大小: \(image.size)")
+                        print("头像成功下载并设置，大小: \(image.size)")
                     }
                 } else {
-                    print("法从创 NSImage")
+                    print("无法从数据创建 NSImage")
                 }
             } else {
                 print("没有收到头像数据")
@@ -377,9 +427,13 @@ class LoginManager: ObservableObject {
         }.resume()
     }
     
+    // 退出登录
     func logout() {
+        // 清除用户数据
         clearUserInfo()
+        // 停止轮询
         stopPolling()
+        // 重置状态
         qrCodeStatus = .loading
         isLoggedIn = false
         username = ""
@@ -387,10 +441,13 @@ class LoginManager: ObservableObject {
         userId = ""
         userToken = ""
         cloudSongs = []
+        // 重新开始登录流程
         startLoginProcess()
     }
     
+    // 获取用户云盘歌曲列表
     func fetchCloudSongs() {
+        // 检查登录状态
         guard isLoggedIn else {
             print("用户未登录，无法获取云盘歌曲")
             return
@@ -399,6 +456,7 @@ class LoginManager: ObservableObject {
         print("开始获取云盘歌曲")
         isLoadingCloudSongs = true
         
+        // 构建请求URL
         let urlString = "https://music.163.com/api/v1/cloud/get"
         guard let url = URL(string: urlString) else {
             print("Invalid URL for cloud songs")
@@ -406,11 +464,12 @@ class LoginManager: ObservableObject {
             return
         }
         
+        // 构建请求
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         
-        // 添加必要的cookie
+        // 添加Cookie信息
         if let cookies = HTTPCookieStorage.shared.cookies(for: url) {
             let cookieHeaders = HTTPCookie.requestHeaderFields(with: cookies)
             for (key, value) in cookieHeaders {
@@ -418,39 +477,47 @@ class LoginManager: ObservableObject {
             }
         }
         
-        // 添加用户Token到请头
+        // 添加用户Token到请求头
         if !userToken.isEmpty {
             request.setValue(userToken, forHTTPHeaderField: "MUSIC_U")
         }
         
+        // 设置请求参数
         let parameters: [String: Any] = [
-            "limit": 15,
-            "offset": 0
+            "limit": 15,    // 每页显示数量
+            "offset": 0     // 起始位置
         ]
         request.httpBody = parameters.percentEncoded()
         
+        // 打印请求信息用于调试
         print("请求URL: \(urlString)")
         print("请求头: \(request.allHTTPHeaderFields ?? [:])")
         print("请求体: \(String(data: request.httpBody ?? Data(), encoding: .utf8) ?? "None")")
         
+        // 发起网络请求
         URLSession.shared.dataTask(with: request) { data, response, error in
+            // 在函数结束时重置加载状态
             defer { DispatchQueue.main.async { self.isLoadingCloudSongs = false } }
             
+            // 错误处理
             if let error = error {
                 print("获取云盘歌曲时出错: \(error)")
                 return
             }
             
+            // 打印响应状态码
             if let httpResponse = response as? HTTPURLResponse {
                 print("云盘歌曲请求 HTTP 状态码: \(httpResponse.statusCode)")
                 print("响应头: \(httpResponse.allHeaderFields)")
             }
             
+            // 确保响应数据存在
             guard let data = data else {
                 print("没有收到云盘歌曲数据")
                 return
             }
             
+            // 解析响应数据
             do {
                 if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
                     print("解析后的云盘歌曲 JSON: \(json)")
@@ -458,9 +525,11 @@ class LoginManager: ObservableObject {
                        let data = json["data"] as? [[String: Any]] {
                         print("API 返回的歌曲数量: \(data.count)")
                         
-                        
+                        // 将JSON数据转换为CloudSong对象
                         let songs = data.compactMap { CloudSong(json: $0) }
                         print("成功解析的歌曲数量: \(songs.count)")
+                        
+                        // 在主线程更新UI
                         DispatchQueue.main.async {
                             self.cloudSongs = songs
                         }
@@ -482,13 +551,16 @@ class LoginManager: ObservableObject {
         }.resume()
     }
     
+    // 匹配云盘歌曲
     func matchCloudSong(cloudSongId: String, matchSongId: String, completion: @escaping (Bool, String) -> Void) {
+        // 检查登录状态
         guard isLoggedIn else {
             print("匹配失败: 用户未登录")
             completion(false, "用户未登录")
             return
         }
         
+        // 打印调试信息
         print("开始匹配歌曲")
         print("云盘歌曲ID: \(cloudSongId)")
         print("匹配歌曲ID: \(matchSongId)")
@@ -502,28 +574,20 @@ class LoginManager: ObservableObject {
             return
         }
         
-        // 直接送匹配请求，不再预先检查匹配歌曲ID
-        sendMatchRequest(cloudSongId: cloudSongId, matchSongId: matchSongId) { success, message in
-            DispatchQueue.main.async {
-                if let index = self.cloudSongs.firstIndex(where: { $0.id == cloudSongId }) {
-                    if success {
-                        self.cloudSongs[index].matchStatus = .matched
-                    } else {
-                        self.cloudSongs[index].matchStatus = .failed(message)
-                    }
-                }
-                completion(success, message)
-            }
-        }
+        // 发送匹配请求
+        sendMatchRequest(cloudSongId: cloudSongId, matchSongId: matchSongId, completion: completion)
     }
     
+    // 发送匹配请求到服务器
     private func sendMatchRequest(cloudSongId: String, matchSongId: String, completion: @escaping (Bool, String) -> Void) {
+        // 验证用户ID
         guard !userId.isEmpty else {
             print("匹配失败: 用户ID为空")
             completion(false, "用户ID为空")
             return
         }
 
+        // 构建请求URL
         let urlString = "https://music.163.com/api/cloud/user/song/match?userId=\(userId)&songId=\(cloudSongId)&adjustSongId=\(matchSongId)"
         guard let url = URL(string: urlString) else {
             print("发送匹配请求失败: 无效的URL")
@@ -531,35 +595,37 @@ class LoginManager: ObservableObject {
             return
         }
         
+        // 构建请求
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         
-        // 设置完整的 Cookie
-        //let fullCookie = "MUSIC_U=\(userToken); MUSIC_A_T=\(userToken)"
-        // request.setValue(fullCookie, forHTTPHeaderField: "Cookie")
-        
-        
+        // 打印请求信息
         print("发送匹配请求: \(urlString)")
         print("请求头: \(request.allHTTPHeaderFields ?? [:])")
         
+        // 发起网络请求
         URLSession.shared.dataTask(with: request) { data, response, error in
+            // 错误处理
             if let error = error {
-                print("匹配请求败: \(error.localizedDescription)")
+                print("匹配请求失败: \(error.localizedDescription)")
                 completion(false, "匹配请求失败: \(error.localizedDescription)")
                 return
             }
             
+            // 打印响应信息
             if let httpResponse = response as? HTTPURLResponse {
                 print("匹配请求响应状态码: \(httpResponse.statusCode)")
                 print("响应头: \(httpResponse.allHeaderFields)")
             }
             
+            // 确保响应数据存在
             guard let data = data else {
                 print("匹配请求没有返回数据")
                 completion(false, "无法解析响应")
                 return
             }
             
+            // 解析响应数据
             do {
                 if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
                     print("匹配响应: \(json)")
@@ -692,9 +758,12 @@ extension CloudSong.MatchStatus: Comparable {
     }
 }
 
+// 字典扩展 - 用于处理网络请求参数
 extension Dictionary {
+    // 将字典转换为URL编码的字符串
     func percentEncoded() -> Data? {
         return map { key, value in
+            // 对key和value进行URL编码
             let escapedKey = "\(key)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
             let escapedValue = "\(value)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
             return escapedKey + "=" + escapedValue
@@ -703,62 +772,3 @@ extension Dictionary {
         .data(using: .utf8)
     }
 }
-
-extension String {
-    func md5() -> String {
-        let digest = Insecure.MD5.hash(data: self.data(using: .utf8) ?? Data())
-        return digest.map { String(format: "%02hhx", $0) }.joined()
-    }
-}
-
-// 辅助函数
-extension LoginManager {
-    private func createSecretKey(size: Int) -> String {
-        return secretKey
-    }
-    
-    private func aesEncrypt(_ text: String, key: String) -> String {
-        guard let data = text.data(using: .utf8),
-              let keyData = key.data(using: .utf8) else {
-            print("AES encryption error: Failed to encode text or key")
-            return ""
-        }
-        
-        do {
-            let key = SymmetricKey(data: keyData)
-            let iv = "0102030405060708".data(using: .utf8)!
-            let sealedBox = try AES.GCM.seal(data, using: key, nonce: AES.GCM.Nonce(data: iv))
-            return sealedBox.combined?.base64EncodedString() ?? ""
-        } catch {
-            print("AES encryption error: \(error)")
-            return ""
-        }
-    }
-    
-    private func rsaEncrypt(_ text: String, pubKey: String, modulus: String) -> String {
-        // 这里我们忽略传入的参数，直接回预定义的encSecKey
-        return encSecKey
-    }
-}
-
-extension String {
-    func padLeft(toLength: Int, withPad: String) -> String {
-        guard toLength > self.count else { return self }
-        let padding = String(repeating: withPad, count: toLength - self.count)
-        return padding + self
-    }
-}
-
-// 添加随机IP生成函数
-private func RandomIp() -> String {
-    return (1...4).map { _ in String(Int.random(in: 1...255)) }.joined(separator: ".")
-}
-
-
-
-
-
-
-
-
-
