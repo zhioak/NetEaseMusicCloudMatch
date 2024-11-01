@@ -454,26 +454,13 @@ struct CloudSongTableView: View {
             TableColumn("歌曲ID", value: \.id) { song in
                 ZStack {
                     if editingId == song.id {
-                        TextField("", text: $tempEditId) // 使用临时编辑ID
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .onAppear {
-                                tempEditId = song.id // 初始化临时编辑ID
-                            }
-                            .onAppear {
-                                DispatchQueue.main.async {
-                                    NSApp.keyWindow?.makeFirstResponder(nil)
-                                }
-                            }
-                            .onSubmit {
-                                if let index = songs.firstIndex(where: { $0.id == song.id }) {
-                                    songs[index].id = tempEditId // 更新实际ID
-                                    performMatch(song.id, tempEditId) // 发起匹配
-                                }
-                                editingId = nil
-                            }
-                            .onExitCommand {
-                                editingId = nil
-                            }
+                        EditableTextField(
+                            text: $tempEditId,
+                            song: song,
+                            songs: $songs,
+                            editingId: $editingId,
+                            performMatch: performMatch
+                        )
                     } else {
                         Text(song.id)
                             .font(.system(size: 12))
@@ -579,7 +566,7 @@ struct CloudSongTableView: View {
             withAnimation {
                 // 对歌曲数组进行排序
                 songs.sort { lhs, rhs in
-                    // 遍历所有比较器
+                    // 遍历所有比较
                     for comparator in newValue {
                         switch comparator.compare(lhs, rhs) {
                         case .orderedAscending:
@@ -646,6 +633,90 @@ extension View {
         } else {
             return onChange(of: value, perform: action)
         }
+    }
+}
+
+// 添加这个新的 FocusedTextField 结构体
+struct FocusedTextField: NSViewRepresentable {
+    typealias NSViewType = NSTextField
+    
+    @Binding var text: String
+    var onSubmit: () -> Void
+    
+    func makeNSView(context: Context) -> NSTextField {
+        let textField = NSTextField()
+        textField.delegate = context.coordinator
+        textField.focusRingType = .none
+        textField.bezelStyle = .roundedBezel
+        textField.font = .systemFont(ofSize: 12)
+        
+        // 在创建时就请求焦点
+        DispatchQueue.main.async {
+            textField.window?.makeFirstResponder(textField)
+            textField.selectText(nil)
+        }
+        
+        return textField
+    }
+    
+    func updateNSView(_ nsView: NSTextField, context: Context) {
+        // 只在值不同时更新，避免光标重置
+        if nsView.stringValue != text {
+            nsView.stringValue = text
+        }
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, NSTextFieldDelegate {
+        var parent: FocusedTextField
+        
+        init(_ parent: FocusedTextField) {
+            self.parent = parent
+        }
+        
+        func controlTextDidChange(_ obj: Notification) {
+            if let textField = obj.object as? NSTextField {
+                parent.text = textField.stringValue
+            }
+        }
+        
+        func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+            if commandSelector == #selector(NSResponder.insertNewline(_:)) {
+                parent.onSubmit()
+                return true
+            }
+            if commandSelector == #selector(NSResponder.cancelOperation(_:)) {
+                parent.onSubmit()
+                return true
+            }
+            return false
+        }
+    }
+}
+
+// 修改 EditableTextField 结构体
+struct EditableTextField: View {
+    @Binding var text: String
+    let song: CloudSong
+    @Binding var songs: [CloudSong]
+    @Binding var editingId: String?
+    let performMatch: (String, String) -> Void
+    
+    var body: some View {
+        FocusedTextField(text: $text) {
+            if let index = songs.firstIndex(where: { $0.id == song.id }) {
+                songs[index].id = text
+                performMatch(song.id, text)
+            }
+            editingId = nil
+        }
+        .onAppear {
+            text = song.id
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
