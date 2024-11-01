@@ -291,34 +291,6 @@ struct ContentView_Previews: PreviewProvider {
     }
 }
 
-// 颜色扩展 - 支持十六进制颜色值
-extension Color {
-    init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let a, r, g, b: UInt64
-        switch hex.count {
-        case 3: // RGB (12-bit)
-            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6: // RGB (24-bit)
-            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8: // ARGB (32-bit)
-            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
-        default:
-            (a, r, g, b) = (1, 1, 1, 0)
-        }
-
-        self.init(
-            .sRGB,
-            red: Double(r) / 255,
-            green: Double(g) / 255,
-            blue:  Double(b) / 255,
-            opacity: Double(a) / 255
-        )
-    }
-}
-
 // 云盘歌曲行视图组件
 struct CloudSongRow: View {
     let song: CloudSong           // 歌曲数据
@@ -516,7 +488,7 @@ struct CloudSongTableView: View {
             .width(min: 120, ideal: 150)
 
             // 歌曲信息列
-            TableColumn("歌曲信息", value: \.name) { song in
+            TableColumn("歌曲信���", value: \.name) { song in
                 HStack(spacing: 10) {
                     // 封面图片
                     AsyncImage(url: URL(string: song.picUrl)) { image in
@@ -723,7 +695,7 @@ struct FocusedTextField: NSViewRepresentable {
             }
         }
         
-        // 处理特殊键盘事件
+        // 处理特殊��盘事件
         func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
             if commandSelector == #selector(NSResponder.insertNewline(_:)) {
                 parent.onSubmit()
