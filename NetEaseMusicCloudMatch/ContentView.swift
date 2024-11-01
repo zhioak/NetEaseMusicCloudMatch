@@ -379,11 +379,9 @@ struct CloudSongRow: View {
     private var backgroundColor: Color {
         if isSelected {
             return Color.accentColor.opacity(0.2)
-        } else if colorScheme == .dark {
-            return isEven ? Color(nsColor: .alternatingContentBackgroundColors[0]) : Color(nsColor: .alternatingContentBackgroundColors[1])
-        } else {
-            return isEven ? Color(nsColor: .alternatingContentBackgroundColors[0]) : Color(nsColor: .alternatingContentBackgroundColors[1])
         }
+        // 使用三元运算符简化重复代码
+        return Color(nsColor: .alternatingContentBackgroundColors[isEven ? 0 : 1])
     }
     
     // 获取文本颜色
@@ -488,7 +486,7 @@ struct CloudSongTableView: View {
             .width(min: 120, ideal: 150)
 
             // 歌曲信息列
-            TableColumn("歌曲信���", value: \.name) { song in
+            TableColumn("歌曲信息", value: \.name) { song in
                 HStack(spacing: 10) {
                     // 封面图片
                     AsyncImage(url: URL(string: song.picUrl)) { image in
@@ -603,29 +601,30 @@ struct CloudSongTableView: View {
         return String(format: "%d:%02d", minutes, seconds)
     }
 
-    // 选择下一行
-    private func selectNextRow() {
+    // 选择相邻行
+    private func selectAdjacentRow(offset: Int) {
         if let currentId = editingId,
            let currentIndex = filteredSongs.firstIndex(where: { $0.id == currentId }),
-           currentIndex + 1 < filteredSongs.count {
-            let nextSong = filteredSongs[currentIndex + 1]
-            editingId = nextSong.id
-            tempEditId = nextSong.id
-            selection = [nextSong.id]
+           let newIndex = Optional(currentIndex + offset),
+           newIndex >= 0 && newIndex < filteredSongs.count {
+            let targetSong = filteredSongs[newIndex]
+            editingId = targetSong.id
+            tempEditId = targetSong.id
+            selection = [targetSong.id]
         }
+    }
+
+    // 选择下一行
+    private func selectNextRow() {
+        selectAdjacentRow(offset: 1)
     }
 
     // 选择上一行
     private func selectPreviousRow() {
-        if let currentId = editingId,
-           let currentIndex = filteredSongs.firstIndex(where: { $0.id == currentId }),
-           currentIndex > 0 {
-            let previousSong = filteredSongs[currentIndex - 1]
-            editingId = previousSong.id
-            tempEditId = previousSong.id
-            selection = [previousSong.id]
-        }
+        selectAdjacentRow(offset: -1)
     }
+
+
 }
 
 // View扩展 - 用于安全处理onChange事件
@@ -695,7 +694,7 @@ struct FocusedTextField: NSViewRepresentable {
             }
         }
         
-        // 处理特殊��盘事件
+        // 处理特殊盘事件
         func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
             if commandSelector == #selector(NSResponder.insertNewline(_:)) {
                 parent.onSubmit()
