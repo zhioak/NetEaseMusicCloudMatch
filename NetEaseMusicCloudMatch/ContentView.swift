@@ -612,10 +612,7 @@ struct CloudSongTableView: View {
             print("onchange")
             if let selectedId = newSelection.first {
                 startEditing(songId: selectedId)
-            } else {
-                editingId = nil
-                tempEditId = ""
-            }
+            } 
         }
     }
 
