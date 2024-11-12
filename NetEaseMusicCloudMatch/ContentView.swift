@@ -19,8 +19,10 @@ private let columnPadding: CGFloat = 8
 // 日志记录结构体
 struct MatchLogEntry: Identifiable {
     let id = UUID()
-    let timestamp: Date
-    let message: String
+    let songName: String      // 歌曲名
+    let cloudSongId: String   // 云盘歌曲ID
+    let matchSongId: String   // 匹配目标ID
+    let message: String       // 其他信息
     let isSuccess: Bool
 }
 
@@ -30,7 +32,6 @@ struct ContentView: View {
     @StateObject private var loginManager = LoginManager.shared  // 使用单例模式管理登录状态
     @State private var searchText = ""      // 搜索框的文本
     @State private var isMatching = false   // 是否正在进行匹配
-    @State private var matchResult: String? // 匹配结果信息
     @State private var matchLogs: [MatchLogEntry] = []  // 新增日志数组
     
     var body: some View {
@@ -150,7 +151,13 @@ struct ContentView: View {
         // 验证输入
         guard !matchSongId.isEmpty else {
             let message = "请输入匹配ID"
-            matchLogs.append(MatchLogEntry(timestamp: Date(), message: message, isSuccess: false))
+            matchLogs.append(MatchLogEntry(
+                songName: "",
+                cloudSongId: cloudSongId,
+                matchSongId: "",
+                message: message,
+                isSuccess: false
+            ))
             completion(false, message)
             return
         }
@@ -160,25 +167,26 @@ struct ContentView: View {
         
         // 更新UI状态
         isMatching = true
-        matchResult = nil
         
         // 调用匹配API
         loginManager.matchCloudSong(cloudSongId: cloudSongId, matchSongId: matchSongId) { success, message, updatedSong in
             DispatchQueue.main.async {
                 isMatching = false
-                let logMessage = "【\(songName)】 \(cloudSongId) → \(matchSongId) \(success ? "✅" : "❌️ \(message)")"
-                matchLogs.append(MatchLogEntry(timestamp: Date(), message: logMessage, isSuccess: success))
+                matchLogs.append(MatchLogEntry(
+                    songName: songName,
+                    cloudSongId: cloudSongId,
+                    matchSongId: matchSongId,
+                    message: message,
+                    isSuccess: success
+                ))
                 
-                // 更新匹配结果显示
+                // 保留更新歌曲信息的逻辑
                 if success, let song = updatedSong {
-                    matchResult = "【\(songName)】 \(cloudSongId) → \(matchSongId) ✅"
-                    // 更新歌曲信息
                     if let index = self.loginManager.cloudSongs.firstIndex(where: { $0.id == cloudSongId }) {
                         self.loginManager.cloudSongs[index] = song
                     }
-                } else {
-                    matchResult = "【\(songName)】 \(cloudSongId) → \(matchSongId) ❌️: \(message)" 
                 }
+                
                 completion(success, message)
             }
         }
@@ -657,7 +665,7 @@ struct CloudSongTableView: View {
 
 }
 
-// View扩展 - 用于安全处理onChange事件
+// View扩展 - 用于全处理onChange事件
 extension View {
     // 处理不同版本的onChange事件
     func onChangeSafe<V: Equatable>(of value: V, perform action: @escaping (V) -> Void) -> some View {

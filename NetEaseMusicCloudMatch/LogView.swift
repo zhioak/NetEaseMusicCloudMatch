@@ -44,21 +44,31 @@ struct LogEntryRow: View {
     let isLatest: Bool
     
     var body: some View {
-        HStack(spacing: 8) {
-            // 时间戳
-            Text(formatLogTime(log.timestamp))
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.secondary)
-            
-            // 状态图标
+        HStack(spacing: 4) {
             Image(systemName: log.isSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
                 .foregroundColor(log.isSuccess ? .green : .red)
                 .font(.system(size: 12))
-            
-            // 日志消息
-            Text(log.message)
+                .frame(width: 16)
+                   
+            // 歌曲名 - 左对齐，固定宽度
+            Text(log.songName)
+                .foregroundColor(.blue)
                 .font(.system(size: 12))
-                .foregroundColor(log.isSuccess ? .primary : .red)
+                .lineLimit(1)
+            Text(log.cloudSongId)
+                .font(.system(size: 12))
+            Image(systemName: "arrow.right")
+                .font(.system(size: 9, weight: .bold))
+            Text(log.matchSongId)
+                .font(.system(size: 12))
+            if !log.message.isEmpty {
+                Text(":")
+                    .font(.system(size: 12, weight: .bold))
+                
+                Text(log.message)
+                    .font(.system(size: 12))
+            }
+        
             
             Spacer()
         }
@@ -68,35 +78,26 @@ struct LogEntryRow: View {
         .background(Color.accentColor.opacity(isLatest ? 0.1 : 0))
         .cornerRadius(4)
     }
-    
-    // 格式化日志时间
-    private func formatLogTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm:ss"
-        return formatter.string(from: date)
-    }
 }
 
 // 日志条目预览
 struct LogView_Previews: PreviewProvider {
     static var previews: some View {
         LogView(logs: [
-            MatchLogEntry(timestamp: Date(), message: "测试成功日志", isSuccess: true),
-            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
-            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
-            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
-            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
-            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
-            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
-            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
-            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
-            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
-            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
-            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
-            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
-            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
-            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
-            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false)
+            MatchLogEntry(
+                songName: "测试歌曲",
+                cloudSongId: "123456",
+                matchSongId: "789012",
+                message: "",
+                isSuccess: true
+            ),
+            MatchLogEntry(
+                songName: "测试歌曲2",
+                cloudSongId: "345678",
+                matchSongId: "901234",
+                message: "匹配失败",
+                isSuccess: false
+            )
         ])
         .frame(height: 200)
     }
