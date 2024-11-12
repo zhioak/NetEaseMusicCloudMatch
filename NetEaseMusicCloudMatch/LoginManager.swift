@@ -537,6 +537,10 @@ class LoginManager: ObservableObject {
                         print("无法从 JSON 中解析出云盘歌曲数据")
                         if let code = json["code"] as? Int {
                             print("返回的错误代码: \(code)")
+                            if(code == 301){
+                                print("token过期重新登录")
+                                self.logout()
+                            }
                         }
                         if let message = json["message"] as? String {
                             print("返回的错误信息: \(message)")
