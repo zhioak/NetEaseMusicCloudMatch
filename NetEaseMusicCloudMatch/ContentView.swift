@@ -91,7 +91,6 @@ struct ContentView: View {
                             
                             // 刷新按钮 - 用于重新加载云盘音乐
                             Button(action: {
-                                print("开始加载云盘音乐")
                                 loginManager.fetchCloudSongs()
                             }) {
                                 Image(systemName: "arrow.clockwise")
@@ -508,6 +507,7 @@ struct CloudSongTableView: View {
                             song: song,
                             songs: $songs,
                             editingId: $editingId,
+                            selection: $selection,
                             performMatch: performMatch,
                             onTab: selectNextRow,
                             onShiftTab: selectPreviousRow
@@ -584,13 +584,6 @@ struct CloudSongTableView: View {
             }
             .width(min: 20, ideal: 20)
         }
-        .onTapGesture {
-            print("ontap")
-            // 如果当前有选中的行，重新触发编辑状态
-            if let selectedId = selection.first {
-                startEditing(songId: selectedId)
-            }
-        }
         .onChange(of: sortOrder) { _, newValue in
             withAnimation {
                 songs.sort { lhs, rhs in
@@ -609,7 +602,6 @@ struct CloudSongTableView: View {
             }
         }
         .onChange(of: selection) { _, newSelection in
-            print("onchange")
             if let selectedId = newSelection.first {
                 startEditing(songId: selectedId)
             } 
@@ -774,13 +766,14 @@ struct FocusedTextField: NSViewRepresentable {
 
 // 可编辑文本框组件
 struct EditableTextField: View {
-    @Binding var text: String                    
-    let song: CloudSong                          
-    @Binding var songs: [CloudSong]              
-    @Binding var editingId: String?              
-    let performMatch: (String, String, @escaping (Bool, String) -> Void) -> Void   // 修改这里的函数签名
-    var onTab: () -> Void                       
-    var onShiftTab: () -> Void                  
+    @Binding var text: String
+    let song: CloudSong
+    @Binding var songs: [CloudSong]
+    @Binding var editingId: String?
+    @Binding var selection: Set<String>
+    let performMatch: (String, String, @escaping (Bool, String) -> Void) -> Void
+    let onTab: () -> Void
+    let onShiftTab: () -> Void
     
     var body: some View {
         FocusedTextField(text: $text, onSubmit: {
@@ -792,11 +785,9 @@ struct EditableTextField: View {
                     }
                 }
                 editingId = nil
+                selection.removeAll()
             }
         }, onTab: onTab, onShiftTab: onShiftTab)
-        .onAppear {
-            text = song.id
-        }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
