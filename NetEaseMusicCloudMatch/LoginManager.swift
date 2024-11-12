@@ -640,7 +640,7 @@ class LoginManager: ObservableObject {
                             }
                         default:
                             let msg = json["message"] as? String ?? "未知错误"
-                            completion(false, "\(json)", nil)
+                            completion(false, msg, nil)
                         }
                     } else {
                         completion(false, "无法解析响应", nil)
