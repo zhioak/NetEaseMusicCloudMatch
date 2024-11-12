@@ -113,47 +113,13 @@ struct ContentView: View {
                         
                         // 终端风格的日志视图容器
                         VStack(spacing: 0) {
-                            // 匹配状态指示器
                             if isMatching {
                                 ProgressView()
                             }
                             
-                            // 终端风格的日志视图
-                            ScrollViewReader { proxy in
-                                ScrollView {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        ForEach(matchLogs) { log in
-                                            HStack(spacing: 8) {
-                                                // 时间戳
-                                                Text(formatLogTime(log.timestamp))
-                                                    .font(.system(size: 12, weight: .medium))
-                                                    .foregroundColor(.secondary)
-                                                
-                                                // 状态图标
-                                                Image(systemName: log.isSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                                    .foregroundColor(log.isSuccess ? .green : .red)
-                                                    .font(.system(size: 12))
-                                                
-                                                // 日志消息
-                                                Text(log.message)
-                                                    .font(.system(size: 12))
-                                                    .foregroundColor(log.isSuccess ? .primary : .red)
-                                                
-                                                Spacer()
-                                            }
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 4)
-                                            .frame(maxWidth: .infinity)
-                                            .background(log.id == matchLogs.last?.id ? Color.accentColor.opacity(0.1) : Color.clear)
-                                            .cornerRadius(4)
-                                        }
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                }
+                            LogView(logs: matchLogs)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: geometry.size.height * 0.35) // 调整为剩余高度
-                                .background(Color.red)
-                            }
+                                .frame(height: geometry.size.height * 0.35)
                         }
                         .frame(maxWidth: .infinity)
                     }
