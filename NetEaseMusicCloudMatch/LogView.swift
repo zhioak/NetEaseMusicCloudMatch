@@ -12,21 +12,25 @@ struct LogView: View {
                             log: log,
                             isLatest: log.id == logs.last?.id
                         )
+                        .id(log.id)
                     }
                 }
                 .frame(maxWidth: .infinity)
                 .onChange(of: logs.count) { _ in
-                    if let lastId = logs.last?.id {
+                    if let lastLog = logs.last {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            withAnimation {
-                                proxy.scrollTo(lastId, anchor: .bottom)
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                proxy.scrollTo(lastLog.id, anchor: .bottom)
                             }
                         }
                     }
                 }
+                .padding(.bottom, 4)
             }
             .frame(maxWidth: .infinity)
             .background(Color(nsColor: .windowBackgroundColor))
+            .scrollIndicators(.visible)
+            .padding(.bottom, 4)
         }
     }
 }
@@ -75,6 +79,20 @@ struct LogView_Previews: PreviewProvider {
     static var previews: some View {
         LogView(logs: [
             MatchLogEntry(timestamp: Date(), message: "测试成功日志", isSuccess: true),
+            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
+            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
+            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
+            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
+            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
+            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
+            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
+            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
+            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
+            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
+            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
+            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
+            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
+            MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false),
             MatchLogEntry(timestamp: Date(), message: "测试失败日志", isSuccess: false)
         ])
         .frame(height: 200)

@@ -119,7 +119,7 @@ struct ContentView: View {
                             
                             LogView(logs: matchLogs)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: geometry.size.height * 0.35)
+//                                .frame(height: geometry.size.height * 0.35)
                         }
                         .frame(maxWidth: .infinity)
                     }
