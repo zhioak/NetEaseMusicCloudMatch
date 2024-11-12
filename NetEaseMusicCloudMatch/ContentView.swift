@@ -677,10 +677,8 @@ struct CloudSongTableView: View {
 
     // 新增：处理开始编辑的函数
     private func startEditing(songId: String) {
-        DispatchQueue.main.async {
-            editingId = songId
-            tempEditId = songId
-        }
+        editingId = songId
+        tempEditId = songId
     }
 }
 
