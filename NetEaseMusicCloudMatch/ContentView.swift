@@ -16,6 +16,14 @@ enum SortOrder {
 // 设置列间距常量，用于保持UI布局的一致性
 private let columnPadding: CGFloat = 8
 
+// 日志记录结构体
+struct MatchLogEntry: Identifiable {
+    let id = UUID()
+    let timestamp: Date
+    let message: String
+    let isSuccess: Bool
+}
+
 // 主视图结构体
 struct ContentView: View {
     // 状态管理
@@ -23,6 +31,7 @@ struct ContentView: View {
     @State private var searchText = ""      // 搜索框的文本
     @State private var isMatching = false   // 是否正在进行匹配
     @State private var matchResult: String? // 匹配结果信息
+    @State private var matchLogs: [MatchLogEntry] = []  // 新增日志数组
     
     var body: some View {
         // 使用GeometryReader来获取可用空间尺寸，实现响应式布局
@@ -33,7 +42,7 @@ struct ContentView: View {
                     LoginView(loginManager: loginManager)  // 未登录显示登录视图
                 } else {
                     // 主界面布局
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 0) {
                         // 顶部工具栏：包含用户信息和搜索栏
                         HStack {
                             // 用户信息区域：头像和用户名
@@ -100,19 +109,53 @@ struct ContentView: View {
                             set: { self.loginManager.cloudSongs = $0 }
                         ), searchText: $searchText, performMatch: performMatch)
                             .frame(maxWidth: .infinity)
-                            .frame(height: geometry.size.height * 0.8) // 设置表格高度为窗口高度的80%
+                            .frame(height: geometry.size.height * 0.65) // 将表格高度调整为窗口高度的65%
                         
-                        // 匹配状态指示器
-                        if isMatching {
-                            ProgressView()  // 显示加载动画
+                        // 终端风格的日志视图容器
+                        VStack(spacing: 0) {
+                            // 匹配状态指示器
+                            if isMatching {
+                                ProgressView()
+                            }
+                            
+                            // 终端风格的日志视图
+                            ScrollViewReader { proxy in
+                                ScrollView {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        ForEach(matchLogs) { log in
+                                            HStack(spacing: 8) {
+                                                // 时间戳
+                                                Text(formatLogTime(log.timestamp))
+                                                    .font(.system(size: 12, weight: .medium))
+                                                    .foregroundColor(.secondary)
+                                                
+                                                // 状态图标
+                                                Image(systemName: log.isSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                                    .foregroundColor(log.isSuccess ? .green : .red)
+                                                    .font(.system(size: 12))
+                                                
+                                                // 日志消息
+                                                Text(log.message)
+                                                    .font(.system(size: 12))
+                                                    .foregroundColor(log.isSuccess ? .primary : .red)
+                                                
+                                                Spacer()
+                                            }
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .frame(maxWidth: .infinity)
+                                            .background(log.id == matchLogs.last?.id ? Color.accentColor.opacity(0.1) : Color.clear)
+                                            .cornerRadius(4)
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: geometry.size.height * 0.35) // 调整为剩余高度
+                                .background(Color.red)
+                            }
                         }
-                        if let result = matchResult {
-                            // 根据匹配结果显示不同颜色的提示
-                            Text(result)
-                                .foregroundColor(result.contains("成功") ? .green : .red)
-                        }
-                        
-                        Spacer()
+                        .frame(maxWidth: .infinity)
                     }
                 }
             }
@@ -129,14 +172,25 @@ struct ContentView: View {
         }
     }
     
+    // 格式化日志时间
+    private func formatLogTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter.string(from: date)
+    }
+    
     // 执行匹配操作的函数
     private func performMatch(cloudSongId: String, matchSongId: String, completion: @escaping (Bool, String) -> Void = { _, _ in }) {
         // 验证输入
         guard !matchSongId.isEmpty else {
-            matchResult = "请输入匹配ID"
-            completion(false, "请输入匹配ID")
+            let message = "请输入匹配ID"
+            matchLogs.append(MatchLogEntry(timestamp: Date(), message: message, isSuccess: false))
+            completion(false, message)
             return
         }
+        
+        // 获取当前歌曲名称
+        let songName = loginManager.cloudSongs.first(where: { $0.id == cloudSongId })?.name ?? "未知歌曲"
         
         // 更新UI状态
         isMatching = true
@@ -146,12 +200,18 @@ struct ContentView: View {
         loginManager.matchCloudSong(cloudSongId: cloudSongId, matchSongId: matchSongId) { success, message, updatedSong in
             DispatchQueue.main.async {
                 isMatching = false
-                matchResult = message
-                if success, let updatedSong = updatedSong {
-                    // 只更新匹配成功的那首歌
+                let logMessage = "【\(songName)】 \(cloudSongId) → \(matchSongId) \(success ? "✅" : "❌️ \(message)")"
+                matchLogs.append(MatchLogEntry(timestamp: Date(), message: logMessage, isSuccess: success))
+                
+                // 更新匹配结果显示
+                if success, let song = updatedSong {
+                    matchResult = "【\(songName)】 \(cloudSongId) → \(matchSongId) ✅"
+                    // 更新歌曲信息
                     if let index = self.loginManager.cloudSongs.firstIndex(where: { $0.id == cloudSongId }) {
-                        self.loginManager.cloudSongs[index] = updatedSong
+                        self.loginManager.cloudSongs[index] = song
                     }
+                } else {
+                    matchResult = "【\(songName)】 \(cloudSongId) → \(matchSongId) ❌️: \(message)" 
                 }
                 completion(success, message)
             }
@@ -487,9 +547,9 @@ struct CloudSongTableView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .width(min: 120, ideal: 150)
+            .width(min: 50, ideal: 50)
 
-            // 歌曲信息列
+            // 歌曲信息
             TableColumn("歌曲信息", value: \.name) { song in
                 HStack(spacing: 10) {
                     // 封面图片
@@ -514,33 +574,33 @@ struct CloudSongTableView: View {
                     }
                 }
             }
-            .width(min: 120, ideal: 120)
+            .width(min: 140, ideal: 140)
 
-            // 专辑列
+            // 列
             TableColumn("专辑", value: \.album) { song in
                 Text(song.album)
                     .font(.system(size: 12))
                     .lineLimit(1)
             }
-            .width(min: 50, ideal: 50)
+            .width(min: 100, ideal: 100)
 
             // 上传时间列
             TableColumn("上传时间", value: \.addTime) { song in
                 Text(formatDate(song.addTime))
             }
-            .width(min: 80, ideal: 120)
+            .width(min: 80, ideal: 80)
 
             // 文件大小列
             TableColumn("文件大小", value: \.fileSize) { song in
                 Text(formatFileSize(song.fileSize))
             }
-            .width(min: 60, ideal: 80)
+            .width(min: 40, ideal: 40)
 
             // 时长列
             TableColumn("时长", value: \.duration) { song in
                 Text(formatDuration(song.duration))
             }
-            .width(min: 50, ideal: 60)
+            .width(min: 20, ideal: 20)
         }
         // 监听选择变化
         .onChange(of: selection) { newSelection in

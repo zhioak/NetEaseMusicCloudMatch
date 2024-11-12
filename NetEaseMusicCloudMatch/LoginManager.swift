@@ -564,13 +564,6 @@ class LoginManager: ObservableObject {
             return
         }
         
-        // 打印调试信息
-        print("开始匹配歌曲")
-        print("云盘歌曲ID: \(cloudSongId)")
-        print("匹配歌曲ID: \(matchSongId)")
-        print("用户ID: \(userId)")
-        print("用户Token: \(userToken)")
-        
         // 检查云盘文件是否存在
         guard let _ = cloudSongs.first(where: { $0.id == cloudSongId }) else {
             print("匹配失败: 云盘文件不存在")
@@ -647,8 +640,7 @@ class LoginManager: ObservableObject {
                             }
                         default:
                             let msg = json["message"] as? String ?? "未知错误"
-                            print("匹配失败 (code: \(code)): \(msg)")
-                            completion(false, "匹配失败: 错误代码 \(code), \(msg)", nil)
+                            completion(false, "\(json)", nil)
                         }
                     } else {
                         completion(false, "无法解析响应", nil)
