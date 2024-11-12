@@ -517,6 +517,14 @@ struct CloudSongTableView: View {
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                withAnimation {
+                                    print("text on tap")
+                                    selection = [song.id]
+                                    startEditing(songId: song.id)
+                                }
+                            }
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -576,15 +584,14 @@ struct CloudSongTableView: View {
             }
             .width(min: 20, ideal: 20)
         }
-        // 监听选择变化
-        .onChange(of: selection) { newSelection in
-            if let selectedId = newSelection.first {
-                editingId = selectedId
-                tempEditId = selectedId
+        .onTapGesture {
+            print("ontap")
+            // 如果当前有选中的行，重新触发编辑状态
+            if let selectedId = selection.first {
+                startEditing(songId: selectedId)
             }
         }
-        // 监听排序变化
-        .onChange(of: sortOrder) { newValue in
+        .onChange(of: sortOrder) { _, newValue in
             withAnimation {
                 songs.sort { lhs, rhs in
                     for comparator in newValue {
@@ -599,6 +606,15 @@ struct CloudSongTableView: View {
                     }
                     return false
                 }
+            }
+        }
+        .onChange(of: selection) { _, newSelection in
+            print("onchange")
+            if let selectedId = newSelection.first {
+                startEditing(songId: selectedId)
+            } else {
+                editingId = nil
+                tempEditId = ""
             }
         }
     }
@@ -662,7 +678,15 @@ struct CloudSongTableView: View {
         selectAdjacentRow(offset: -1)
     }
 
-
+    // 新增：处理开始编辑的函数
+    private func startEditing(songId: String) {
+        // 无论是否是相同的 ID，都重置编辑状态
+        editingId = nil
+        DispatchQueue.main.async {
+            editingId = songId
+            tempEditId = songId
+        }
+    }
 }
 
 // View扩展 - 用于全处理onChange事件

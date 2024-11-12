@@ -20,7 +20,7 @@ struct LogView: View {
                         .id("bottom")
                 }
                 .frame(maxWidth: .infinity)
-                .onChange(of: logs.count) { _ in
+                .onChange(of: logs.count) { _, _ in
                     // 使用 bottom 锚点进行滚动，并调整延迟时间
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                         withAnimation(.easeOut(duration: 0.2)) {
@@ -31,7 +31,6 @@ struct LogView: View {
                 .padding(.bottom, 4)
             }
             .frame(maxWidth: .infinity)
-            // .background(Color(nsColor: .windowBackgroundColor))
             .scrollIndicators(.visible)
             .padding(.bottom, 4)
         }
