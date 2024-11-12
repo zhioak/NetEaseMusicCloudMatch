@@ -16,7 +16,7 @@ struct LogView: View {
                     }
                     // 添加一个空视图作为滚动锚点
                     Color.clear
-                        .frame(height: 1)
+                        .frame(height: 0)
                         .id("bottom")
                 }
                 .frame(maxWidth: .infinity)
@@ -31,7 +31,7 @@ struct LogView: View {
                 .padding(.bottom, 4)
             }
             .frame(maxWidth: .infinity)
-            .background(Color(nsColor: .windowBackgroundColor))
+            // .background(Color(nsColor: .windowBackgroundColor))
             .scrollIndicators(.visible)
             .padding(.bottom, 4)
         }
