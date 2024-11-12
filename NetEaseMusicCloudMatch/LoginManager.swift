@@ -556,11 +556,11 @@ class LoginManager: ObservableObject {
     }
     
     // 匹配云盘歌曲
-    func matchCloudSong(cloudSongId: String, matchSongId: String, completion: @escaping (Bool, String) -> Void) {
+    func matchCloudSong(cloudSongId: String, matchSongId: String, completion: @escaping (Bool, String, CloudSong?) -> Void) {
         // 检查登录状态
         guard isLoggedIn else {
             print("匹配失败: 用户未登录")
-            completion(false, "用户未登录")
+            completion(false, "用户未登录", nil)
             return
         }
         
@@ -574,7 +574,7 @@ class LoginManager: ObservableObject {
         // 检查云盘文件是否存在
         guard let _ = cloudSongs.first(where: { $0.id == cloudSongId }) else {
             print("匹配失败: 云盘文件不存在")
-            completion(false, "云盘文件不存在")
+            completion(false, "云盘文件不存在", nil)
             return
         }
         
@@ -583,36 +583,34 @@ class LoginManager: ObservableObject {
     }
     
     // 发送匹配请求到服务器
-    private func sendMatchRequest(cloudSongId: String, matchSongId: String, completion: @escaping (Bool, String) -> Void) {
-        // 验证用户ID
+    private func sendMatchRequest(cloudSongId: String, matchSongId: String, completion: @escaping (Bool, String, CloudSong?) -> Void) {
         guard !userId.isEmpty else {
             print("匹配失败: 用户ID为空")
-            completion(false, "用户ID为空")
+            completion(false, "用户ID为空", nil)
             return
         }
 
-        // 构建请求URL
         let urlString = "https://music.163.com/api/cloud/user/song/match?userId=\(userId)&songId=\(cloudSongId)&adjustSongId=\(matchSongId)"
         guard let url = URL(string: urlString) else {
             print("发送匹配请求失败: 无效的URL")
-            completion(false, "Invalid URL")
+            completion(false, "Invalid URL", nil)
             return
         }
         
-        // 构建请求
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        
-        // 打印请求信息
-        print("发送匹配请求: \(urlString)")
-        print("请求头: \(request.allHTTPHeaderFields ?? [:])")
+                
+        // 添加Cookie
+        // if !userToken.isEmpty {
+        //     request.setValue("MUSIC_U=\(userToken)", forHTTPHeaderField: "Cookie")
+        // }
         
         // 发起网络请求
         URLSession.shared.dataTask(with: request) { data, response, error in
             // 错误处理
             if let error = error {
                 print("匹配请求失败: \(error.localizedDescription)")
-                completion(false, "匹配请求失败: \(error.localizedDescription)")
+                completion(false, "匹配请求失败: \(error.localizedDescription)", nil)
                 return
             }
             
@@ -625,7 +623,7 @@ class LoginManager: ObservableObject {
             // 确保响应数据存在
             guard let data = data else {
                 print("匹配请求没有返回数据")
-                completion(false, "无法解析响应")
+                completion(false, "无法解析响应", nil)
                 return
             }
             
@@ -636,24 +634,30 @@ class LoginManager: ObservableObject {
                     if let code = json["code"] as? Int {
                         switch code {
                         case 200:
-                            print("匹配成功")
-                            completion(true, "匹配成功")
+                            if let matchData = json["matchData"] as? [String: Any] {
+                                // 从匹配数据创建新的 CloudSong 对象
+                                if let updatedSong = CloudSong(json: matchData) {
+                                    print("匹配成功，获取到更新后的歌曲信息")
+                                    completion(true, "匹配成功", updatedSong)
+                                } else {
+                                    completion(true, "匹配成功，但无法解析更新后的歌曲信息", nil)
+                                }
+                            } else {
+                                completion(true, "匹配成功", nil)
+                            }
                         default:
                             let msg = json["message"] as? String ?? "未知错误"
                             print("匹配失败 (code: \(code)): \(msg)")
-                            completion(false, "匹配失败: 错误代码 \(code), \(msg)")
+                            completion(false, "匹配失败: 错误代码 \(code), \(msg)", nil)
                         }
                     } else {
-                        print("匹配响应中没有code字段")
-                        completion(false, "无法解析响应")
+                        completion(false, "无法解析响应", nil)
                     }
                 } else {
-                    print("无法将响应解析为JSON")
-                    completion(false, "无法解析响应")
+                    completion(false, "无法解析响应", nil)
                 }
             } catch {
-                print("解析匹配响应时发生错误: \(error.localizedDescription)")
-                completion(false, "无法解析响应")
+                completion(false, "无法解析响应", nil)
             }
         }.resume()
     }

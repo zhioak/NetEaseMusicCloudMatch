@@ -130,10 +130,11 @@ struct ContentView: View {
     }
     
     // 执行匹配操作的函数
-    private func performMatch(cloudSongId: String, matchSongId: String) {
+    private func performMatch(cloudSongId: String, matchSongId: String, completion: @escaping (Bool, String) -> Void = { _, _ in }) {
         // 验证输入
         guard !matchSongId.isEmpty else {
             matchResult = "请输入匹配ID"
+            completion(false, "请输入匹配ID")
             return
         }
         
@@ -142,14 +143,17 @@ struct ContentView: View {
         matchResult = nil
         
         // 调用匹配API
-        loginManager.matchCloudSong(cloudSongId: cloudSongId, matchSongId: matchSongId) { success, message in
+        loginManager.matchCloudSong(cloudSongId: cloudSongId, matchSongId: matchSongId) { success, message, updatedSong in
             DispatchQueue.main.async {
                 isMatching = false
                 matchResult = message
-                if success {
-                    // 匹配成功后刷新歌曲列表
-                    loginManager.fetchCloudSongs()
+                if success, let updatedSong = updatedSong {
+                    // 只更新匹配成功的那首歌
+                    if let index = self.loginManager.cloudSongs.firstIndex(where: { $0.id == cloudSongId }) {
+                        self.loginManager.cloudSongs[index] = updatedSong
+                    }
                 }
+                completion(success, message)
             }
         }
     }
@@ -449,7 +453,7 @@ struct CloudSongTableView: View {
     @State private var editingId: String?     // 当前正在编辑的歌曲ID
     @State private var tempEditId: String = "" // 临时存储编辑的ID
     @State private var selection: Set<String> = []  // 选中的歌曲ID集合
-    var performMatch: (String, String) -> Void  // 执行匹配的回调函数
+    let performMatch: (String, String, @escaping (Bool, String) -> Void) -> Void  // 修改这里的函数签名
 
     var body: some View {
         Table(filteredSongs, selection: $selection, sortOrder: $sortOrder) {
@@ -719,21 +723,25 @@ struct FocusedTextField: NSViewRepresentable {
 
 // 可编辑文本框组件
 struct EditableTextField: View {
-    @Binding var text: String                    // 绑定的文本值
-    let song: CloudSong                          // 歌曲数据
-    @Binding var songs: [CloudSong]              // 歌曲列表
-    @Binding var editingId: String?              // 正在编辑的ID
-    let performMatch: (String, String) -> Void   // 匹配回调
-    var onTab: () -> Void                       // Tab键回调
-    var onShiftTab: () -> Void                  // Shift+Tab回调
+    @Binding var text: String                    
+    let song: CloudSong                          
+    @Binding var songs: [CloudSong]              
+    @Binding var editingId: String?              
+    let performMatch: (String, String, @escaping (Bool, String) -> Void) -> Void   // 修改这里的函数签名
+    var onTab: () -> Void                       
+    var onShiftTab: () -> Void                  
     
     var body: some View {
         FocusedTextField(text: $text, onSubmit: {
-            if let index = songs.firstIndex(where: { $0.id == song.id }) {
-                songs[index].id = text
-                performMatch(song.id, text)
+            performMatch(song.id, text) { success, _ in
+                if success {
+                    // 只在匹配成功时更新歌曲ID
+                    if let index = songs.firstIndex(where: { $0.id == song.id }) {
+                        songs[index].id = text
+                    }
+                }
+                editingId = nil
             }
-            editingId = nil
         }, onTab: onTab, onShiftTab: onShiftTab)
         .onAppear {
             text = song.id
