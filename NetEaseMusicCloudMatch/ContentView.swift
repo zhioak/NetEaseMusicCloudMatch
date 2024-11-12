@@ -680,8 +680,6 @@ struct CloudSongTableView: View {
 
     // 新增：处理开始编辑的函数
     private func startEditing(songId: String) {
-        // 无论是否是相同的 ID，都重置编辑状态
-        editingId = nil
         DispatchQueue.main.async {
             editingId = songId
             tempEditId = songId
