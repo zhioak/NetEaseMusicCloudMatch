@@ -14,14 +14,17 @@ struct LogView: View {
                         )
                         .id(log.id)
                     }
+                    // 添加一个空视图作为滚动锚点
+                    Color.clear
+                        .frame(height: 1)
+                        .id("bottom")
                 }
                 .frame(maxWidth: .infinity)
                 .onChange(of: logs.count) { _ in
-                    if let lastLog = logs.last {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            withAnimation(.easeOut(duration: 0.2)) {
-                                proxy.scrollTo(lastLog.id, anchor: .bottom)
-                            }
+                    // 使用 bottom 锚点进行滚动，并调整延迟时间
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            proxy.scrollTo("bottom", anchor: .bottom)
                         }
                     }
                 }
