@@ -827,16 +827,6 @@ struct PaginationControl: View {
             // 上一页图标
             Image(systemName: "chevron.left")
                 .foregroundColor(currentPage > 1 ? .blue : .gray)
-                .onHover { isHovered in
-                    if currentPage > 1 { // 只在可点击时改变鼠标样式
-                        if isHovered {
-                            NSCursor.pointingHand.push()
-                        } else {
-                            NSCursor.pop()
-                        }
-                    }
-                }
-                .opacity(currentPage > 1 ? 1 : 0.5) // 不可点击时降低透明度
                 .onTapGesture {
                     if currentPage > 1 {
                         onPageChange(currentPage - 1)
@@ -851,18 +841,6 @@ struct PaginationControl: View {
                     .background(currentPage == page ? Color.blue : Color.clear)
                     .cornerRadius(6)
                     .contentShape(Rectangle())
-                    // 添加鼠标样式控制
-                    .onHover { isHovered in
-                        if currentPage != page { // 如果不是当前页
-                            if isHovered {
-                                NSCursor.pointingHand.push()
-                            } else {
-                                NSCursor.pop()
-                            }
-                        }
-                    }
-                    // 添加条件样式
-                    .opacity(currentPage == page ? 1 : 0.8) // 当前页完全不透明，其他页略微透明
                     .onTapGesture {
                         onPageChange(page)
                     }
@@ -871,16 +849,6 @@ struct PaginationControl: View {
             // 下一页图标
             Image(systemName: "chevron.right")
                 .foregroundColor(currentPage < totalPages ? .blue : .gray)
-                .onHover { isHovered in
-                    if currentPage < totalPages { // 只在可点击时改变鼠标样式
-                        if isHovered {
-                            NSCursor.pointingHand.push()
-                        } else {
-                            NSCursor.pop()
-                        }
-                    }
-                }
-                .opacity(currentPage < totalPages ? 1 : 0.5) // 不可点击时降低透明度
                 .onTapGesture {
                     if currentPage < totalPages {
                         onPageChange(currentPage + 1)
