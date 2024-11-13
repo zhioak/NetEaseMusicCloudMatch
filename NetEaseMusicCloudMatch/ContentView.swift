@@ -31,7 +31,6 @@ struct ContentView: View {
     // 状态管理
     @StateObject private var loginManager = LoginManager.shared  // 使用单例模式管理登录状态
     @State private var searchText = ""      // 搜索框的文本
-    @State private var isMatching = false   // 是否正在进行匹配
     @State private var matchLogs: [MatchLogEntry] = []  // 新增日志数组
     
     var body: some View {
@@ -118,10 +117,6 @@ struct ContentView: View {
                                 .fill(Color.secondary.opacity(0.2))
                                 .frame(height: 1)
                             
-                            if isMatching {
-                                ProgressView()
-                            }
-                            
                             LogView(logs: matchLogs)
                                 .frame(maxWidth: .infinity)
                         }
@@ -168,13 +163,9 @@ struct ContentView: View {
         // 获取当前歌曲名称
         let songName = loginManager.cloudSongs.first(where: { $0.id == cloudSongId })?.name ?? "未知歌曲"
         
-        // 更新UI状态
-        isMatching = true
-        
         // 调用匹配API
         loginManager.matchCloudSong(cloudSongId: cloudSongId, matchSongId: matchSongId) { success, message, updatedSong in
             DispatchQueue.main.async {
-                isMatching = false
                 matchLogs.append(MatchLogEntry(
                     songName: songName,
                     cloudSongId: cloudSongId,
@@ -348,7 +339,7 @@ struct CloudSongRow: View {
     
     var body: some View {
         ZStack {
-            // 背景层 - ���据行号显示交替背景色
+            // 背景层 - 据行号显示交替背景色
             Rectangle()
                 .fill(backgroundColor)
             
