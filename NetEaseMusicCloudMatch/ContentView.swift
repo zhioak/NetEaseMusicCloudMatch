@@ -104,12 +104,12 @@ struct ContentView: View {
                         .padding(.vertical, 8)
                         
                         // 音乐列表视图 - 使用双向绑定确保数据同步
-                        CloudSongTableView(songs: Binding(
-                            get: { self.loginManager.cloudSongs },
-                            set: { self.loginManager.cloudSongs = $0 }
-                        ), searchText: $searchText, performMatch: performMatch)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: geometry.size.height * 0.65) // 将表格高度调整为窗口高度的65%
+                         CloudSongTableView(songs: Binding(
+                             get: { self.loginManager.cloudSongs },
+                             set: { self.loginManager.cloudSongs = $0 }
+                         ), searchText: $searchText, performMatch: performMatch)
+                             .frame(maxWidth: .infinity)
+                             .frame(height: geometry.size.height * 0.65) // 将表格高度调整为窗口高度的65%
                         
                         // 终端风格的日志视图容器
                         VStack(spacing: 0) {
@@ -119,7 +119,6 @@ struct ContentView: View {
                             
                             LogView(logs: matchLogs)
                                 .frame(maxWidth: .infinity)
-//                                .frame(height: geometry.size.height * 0.35)
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -138,7 +137,7 @@ struct ContentView: View {
         }
     }
     
-    // 格式化日志时间
+    // 格化日志时间
     private func formatLogTime(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm:ss"
@@ -231,7 +230,7 @@ struct SortableColumnHeader: View {
     }
 }
 
-// 登录视图组件
+// 录视图组件
 struct LoginView: View {
     @ObservedObject var loginManager: LoginManager  // 登录管理器
     
@@ -243,7 +242,7 @@ struct LoginView: View {
             
             // 二维码显示区域
             ZStack {
-                // 显示二维码图片或加载提示
+                // 显示二维码图片或加提示
                 if let image = loginManager.qrCodeImage {
                     Image(nsImage: image)
                         .resizable()
@@ -485,104 +484,133 @@ struct CloudSongTableView: View {
     @State private var sortOrder = [KeyPathComparator(\CloudSong.addTime, order: .reverse)]  // 默认排序方式
     @State private var editingId: String?     // 当前正在编辑的歌曲ID
     @State private var tempEditId: String = "" // 临时存储编辑的ID
-    @State private var selection: Set<String> = []  // 选中的歌曲ID集合
+    @State private var selection: Set<String> = []  // 选中的歌ID集合
     let performMatch: (String, String, @escaping (Bool, String) -> Void) -> Void  // 修改这里的函数签名
-
+    @State private var currentPage = 1  // 添加当前页码状态
+    private let itemsPerPage = 15
+    
+    // 修改 totalPages 计算属性，暂时返回固定值用于测试
+    private var totalPages: Int {
+        // 临时返回固定值5用于测试分页样式
+        return 5
+        
+        // 原来的计算逻辑暂时注释掉
+        // let totalItems = filteredSongs.count
+        // return max(1, Int(ceil(Double(totalItems) / Double(itemsPerPage))))
+    }
+    
     var body: some View {
-        Table(filteredSongs, selection: $selection, sortOrder: $sortOrder) {
-            // 序号列
-            TableColumn("#", value: \.id) { song in
-                Text(String(format: "%02d", filteredSongs.firstIndex(where: { $0.id == song.id })! + 1))
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
-            }
-            .width(20)
+        VStack(spacing: 0) {
+            // 保持现有的 Table 视图及其所有列完全不变
+            Table(filteredSongs, selection: $selection, sortOrder: $sortOrder) {
+                // 序号列
+                TableColumn("#", value: \.id) { song in
+                    Text(String(format: "%02d", filteredSongs.firstIndex(where: { $0.id == song.id })! + 1))
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+                .width(20)
 
-            // 可编辑的歌曲ID列
-            TableColumn("歌曲ID", value: \.id) { song in
-                ZStack {
-                    if editingId == song.id {
-                        EditableTextField(
-                            text: $tempEditId,
-                            song: song,
-                            songs: $songs,
-                            editingId: $editingId,
-                            selection: $selection,
-                            performMatch: performMatch,
-                            onTab: selectNextRow,
-                            onShiftTab: selectPreviousRow
-                        )
-                    } else {
-                        Text(song.id)
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                withAnimation {
-                                    print("text on tap")
-                                    selection = [song.id]
-                                    startEditing(songId: song.id)
+                // 可编辑的歌曲ID列
+                TableColumn("歌曲ID", value: \.id) { song in
+                    ZStack {
+                        if editingId == song.id {
+                            EditableTextField(
+                                text: $tempEditId,
+                                song: song,
+                                songs: $songs,
+                                editingId: $editingId,
+                                selection: $selection,
+                                performMatch: performMatch,
+                                onTab: selectNextRow,
+                                onShiftTab: selectPreviousRow
+                            )
+                        } else {
+                            Text(song.id)
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    withAnimation {
+                                        print("text on tap")
+                                        selection = [song.id]
+                                        startEditing(songId: song.id)
+                                    }
                                 }
-                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .width(min: 50, ideal: 50)
+
+                // 歌曲信息列
+                TableColumn("歌曲信息", value: \.name) { song in
+                    HStack(spacing: 10) {
+                        // 封面图片
+                        AsyncImage(url: URL(string: song.picUrl)) { image in
+                            image.resizable()
+                                .aspectRatio(contentMode: .fit)
+                        } placeholder: {
+                            Color.gray
+                        }
+                        .frame(width: 30, height: 30)
+                        .cornerRadius(4)
+                        
+                        // 歌曲名和艺术家信息
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(song.name)
+                                .font(.system(size: 12))
+                                .lineLimit(1)
+                            Text(song.artist)
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .width(min: 50, ideal: 50)
+                .width(min: 140, ideal: 140)
 
-            // 歌曲信息
-            TableColumn("歌曲信息", value: \.name) { song in
-                HStack(spacing: 10) {
-                    // 封面图片
-                    AsyncImage(url: URL(string: song.picUrl)) { image in
-                        image.resizable()
-                            .aspectRatio(contentMode: .fit)
-                    } placeholder: {
-                        Color.gray
-                    }
-                    .frame(width: 30, height: 30)
-                    .cornerRadius(4)
-                    
-                    // 歌曲名和艺术家信息
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(song.name)
-                            .font(.system(size: 12))
-                            .lineLimit(1)
-                        Text(song.artist)
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                    }
+                // 专辑列
+                TableColumn("专辑", value: \.album) { song in
+                    Text(song.album)
+                        .font(.system(size: 12))
+                        .lineLimit(1)
                 }
-            }
-            .width(min: 140, ideal: 140)
+                .width(min: 100, ideal: 100)
 
-            // 列
-            TableColumn("专辑", value: \.album) { song in
-                Text(song.album)
-                    .font(.system(size: 12))
-                    .lineLimit(1)
-            }
-            .width(min: 100, ideal: 100)
+                // 上传时间列
+                TableColumn("上传时间", value: \.addTime) { song in
+                    Text(formatDate(song.addTime))
+                }
+                .width(min: 80, ideal: 80)
 
-            // 上传时间列
-            TableColumn("上传时间", value: \.addTime) { song in
-                Text(formatDate(song.addTime))
-            }
-            .width(min: 80, ideal: 80)
+                // 文件大小列
+                TableColumn("文件大小", value: \.fileSize) { song in
+                    Text(formatFileSize(song.fileSize))
+                }
+                .width(min: 40, ideal: 40)
 
-            // 文件大小列
-            TableColumn("文件大小", value: \.fileSize) { song in
-                Text(formatFileSize(song.fileSize))
+                // 时长列
+                TableColumn("时长", value: \.duration) { song in
+                    Text(formatDuration(song.duration))
+                }
+                .width(min: 20, ideal: 20)
             }
-            .width(min: 40, ideal: 40)
-
-            // 时长列
-            TableColumn("时长", value: \.duration) { song in
-                Text(formatDuration(song.duration))
+            
+            // 添加分页控制器
+            HStack {
+                Spacer()
+                PaginationControl(
+                    currentPage: currentPage,
+                    totalPages: totalPages,
+                    onPageChange: { page in
+                        // 移除 withAnimation，直接更新页码
+                        currentPage = page
+                    }
+                )
+                Spacer()
             }
-            .width(min: 20, ideal: 20)
         }
         .onChange(of: sortOrder) { _, newValue in
             withAnimation {
@@ -726,7 +754,7 @@ struct FocusedTextField: NSViewRepresentable {
         Coordinator(self)
     }
     
-    // 协调器类 - 处理文本框的委托事件
+    // 协器类 - 处理文本框的委托事件
     class Coordinator: NSObject, NSTextFieldDelegate {
         var parent: FocusedTextField
         
@@ -789,6 +817,72 @@ struct EditableTextField: View {
             }
         }, onTab: onTab, onShiftTab: onShiftTab)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// 分页控制器组件
+struct PaginationControl: View {
+    let currentPage: Int
+    let totalPages: Int
+    let onPageChange: (Int) -> Void
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            // 上一页图标
+            Image(systemName: "chevron.left")
+                .foregroundColor(currentPage > 1 ? .blue : .gray)
+                .onTapGesture {
+                    if currentPage > 1 {
+                        onPageChange(currentPage - 1)
+                    }
+                }
+            
+            // 页码按钮
+            ForEach(getPageRange(), id: \.self) { page in
+                Text("\(page)")
+                    .foregroundColor(currentPage == page ? .white : .primary)
+                    .frame(width: 28, height: 28)
+                    .background(currentPage == page ? Color.blue : Color.clear)
+                    .cornerRadius(6)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        onPageChange(page)
+                    }
+            }
+            
+            // 下一页图标
+            Image(systemName: "chevron.right")
+                .foregroundColor(currentPage < totalPages ? .blue : .gray)
+                .onTapGesture {
+                    if currentPage < totalPages {
+                        onPageChange(currentPage + 1)
+                    }
+                }
+        }
+        .padding(.vertical, 8)
+    }
+    
+    // 获取要显示的页码范围
+    private func getPageRange() -> [Int] {
+        let maxVisiblePages = 3
+        var range = [Int]()
+        
+        if totalPages <= maxVisiblePages {
+            range = Array(1...totalPages)
+        } else {
+            let leftOffset = 1
+            let rightOffset = 1
+            
+            if currentPage <= leftOffset + 1 {
+                range = Array(1...maxVisiblePages)
+            } else if currentPage >= totalPages - rightOffset {
+                range = Array((totalPages - maxVisiblePages + 1)...totalPages)
+            } else {
+                range = Array((currentPage - leftOffset)...(currentPage + rightOffset))
+            }
+        }
+        
+        return range
     }
 }
 
