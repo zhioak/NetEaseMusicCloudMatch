@@ -832,6 +832,17 @@ struct PaginationControl: View {
                         onPageChange(currentPage - 1)
                     }
                 }
+                // 添加鼠标样式
+                .onHover { hovering in
+                    if currentPage > 1 {
+                        NSCursor.pointingHand.set()
+                    } else {
+                        NSCursor.operationNotAllowed.set()
+                    }
+                    if !hovering {
+                        NSCursor.arrow.set()
+                    }
+                }
             
             // 页码按钮
             ForEach(getPageRange(), id: \.self) { page in
@@ -844,6 +855,16 @@ struct PaginationControl: View {
                     .onTapGesture {
                         onPageChange(page)
                     }
+                    // 添加鼠标样式
+                    .onHover { hovering in
+                        if currentPage != page {
+                            if hovering {
+                                NSCursor.pointingHand.set()
+                            } else {
+                                NSCursor.arrow.set()
+                            }
+                        }
+                    }
             }
             
             // 下一页图标
@@ -852,6 +873,17 @@ struct PaginationControl: View {
                 .onTapGesture {
                     if currentPage < totalPages {
                         onPageChange(currentPage + 1)
+                    }
+                }
+                // 添加鼠标样式
+                .onHover { hovering in
+                    if currentPage < totalPages {
+                        NSCursor.pointingHand.set()
+                    } else {
+                        NSCursor.operationNotAllowed.set()
+                    }
+                    if !hovering {
+                        NSCursor.arrow.set()
                     }
                 }
         }
