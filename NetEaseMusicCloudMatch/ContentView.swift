@@ -483,16 +483,13 @@ struct CloudSongTableView: View {
     @State private var selection: Set<String> = []  // 选中的歌ID集合
     let performMatch: (String, String, @escaping (Bool, String) -> Void) -> Void  // 修改这里的函数签名
     @State private var currentPage = 1  // 添加当前页码状态
-    private let itemsPerPage = 15
+    private let itemsPerPage = 200  // 修改为每页 200 条
+    @StateObject private var loginManager = LoginManager.shared
     
-    // 修改 totalPages 计算属性，暂时返回固定值用于测试
+    // 修改 totalPages 计算属性
     private var totalPages: Int {
-        // 临时返回固定值5用于测试分页样式
-        return 5
-        
-        // 原来的计算逻辑暂时注释掉
-        // let totalItems = filteredSongs.count
-        // return max(1, Int(ceil(Double(totalItems) / Double(itemsPerPage))))
+        let total = loginManager.totalSongCount
+        return max(1, Int(ceil(Double(total) / Double(itemsPerPage))))
     }
     
     var body: some View {
@@ -601,12 +598,17 @@ struct CloudSongTableView: View {
                     currentPage: currentPage,
                     totalPages: totalPages,
                     onPageChange: { page in
-                        // 移除 withAnimation，直接更新页码
                         currentPage = page
+                        // 当页码改变时重新获取数据
+                        loginManager.fetchCloudSongs(page: page, limit: itemsPerPage)
                     }
                 )
                 Spacer()
             }
+        }
+        .onAppear {
+            // 初始加载第一页数据
+            loginManager.fetchCloudSongs(page: currentPage, limit: itemsPerPage)
         }
         .onChange(of: sortOrder) { _, newValue in
             withAnimation {

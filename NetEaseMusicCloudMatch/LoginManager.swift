@@ -28,6 +28,7 @@ class LoginManager: ObservableObject {
     @Published var isLoadingCloudSongs = false  // 是否正在加载云盘歌曲
     @Published var userId: String = ""          // 用户ID
     @Published private(set) var isGettingQRCode = false // 是否正在获取二维码
+    @Published var totalSongCount: Int = 0
     
     // MARK: - 私有属性
     private var key: String = ""                // 二维码key
@@ -446,7 +447,7 @@ class LoginManager: ObservableObject {
     }
     
     // 获取用户云盘歌曲列表
-    func fetchCloudSongs() {
+    func fetchCloudSongs(page: Int = 1, limit: Int = 200) {
         // 检查登录状态
         guard isLoggedIn else {
             print("用户未登录，无法获取云盘歌曲")
@@ -483,9 +484,10 @@ class LoginManager: ObservableObject {
         }
         
         // 设置请求参数
+        let offset = (page - 1) * limit
         let parameters: [String: Any] = [
-            "limit": 15,    // 每页显示数量
-            "offset": 0     // 起始位置
+            "limit": limit,    // 每页显示数量
+            "offset": offset   // 起始位置
         ]
         request.httpBody = parameters.percentEncoded()
         
@@ -523,7 +525,12 @@ class LoginManager: ObservableObject {
                     print("解析后的云盘歌曲 JSON: \(json)")
                     if let code = json["code"] as? Int, code == 200,
                        let data = json["data"] as? [[String: Any]] {
-                        print("API 返回的歌曲数量: \(data.count)")
+                        // 添加总数解析
+                        if let count = json["count"] as? Int {
+                            DispatchQueue.main.async {
+                                self.totalSongCount = count
+                            }
+                        }
                         
                         // 将JSON数据转换为CloudSong对象
                         let songs = data.compactMap { CloudSong(json: $0) }
