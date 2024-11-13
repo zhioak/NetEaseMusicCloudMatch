@@ -113,6 +113,11 @@ struct ContentView: View {
                         
                         // 终端风格的日志视图容器
                         VStack(spacing: 0) {
+                            // 添加分割线
+                            Rectangle()
+                                .fill(Color.secondary.opacity(0.2))
+                                .frame(height: 1)
+                            
                             if isMatching {
                                 ProgressView()
                             }
@@ -343,7 +348,7 @@ struct CloudSongRow: View {
     
     var body: some View {
         ZStack {
-            // 背景层 - 根据行号显示交替背景色
+            // 背景层 - ���据行号显示交替背景色
             Rectangle()
                 .fill(backgroundColor)
             
