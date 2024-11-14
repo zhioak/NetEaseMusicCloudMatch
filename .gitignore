@@ -113,3 +113,9 @@ browser/Firefox_Open_In_IINA/*
 
 deps/executable/youtube-dl
 
+# IntelliJ IDEA
+.idea
+*.iws
+*.iml
+*.ipr
+
