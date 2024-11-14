@@ -6,6 +6,7 @@ struct ContentView: View {
     @StateObject private var loginManager = LoginManager.shared  // 使用单例模式管理登录状态
     @State private var searchText = ""      // 搜索框的文本
     @State private var matchLogs: [LogEntry] = []  // 更新类型
+    @StateObject private var songManager = CloudSongManager.shared
     
     var body: some View {
         // 使用GeometryReader来获取可用空间尺寸，实现响应式布局
@@ -70,7 +71,7 @@ struct ContentView: View {
                             
                             // 刷新按钮 - 用于重新加载云盘音乐
                             Button(action: {
-                                loginManager.fetchCloudSongs()
+                                songManager.fetchCloudSongs()
                             }) {
                                 Image(systemName: "arrow.clockwise")
                                     .foregroundColor(.blue)
@@ -85,8 +86,8 @@ struct ContentView: View {
                         // 音乐列表视图 - 使用双向绑定确保数据同步
                          SongTableView(
                              songs: Binding(
-                                 get: { self.loginManager.cloudSongs },
-                                 set: { self.loginManager.cloudSongs = $0 }
+                                 get: { self.songManager.cloudSongs },
+                                 set: { self.songManager.cloudSongs = $0 }
                              ),
                              searchText: $searchText,
                              performMatch: performMatch
@@ -117,7 +118,7 @@ struct ContentView: View {
         .onAppear {
             // 视图出现时根据登录状态执行相应操作
             if loginManager.isLoggedIn {
-                loginManager.fetchCloudSongs()
+                songManager.fetchCloudSongs()
             } else {
                 loginManager.startLoginProcess()
             }
@@ -141,10 +142,10 @@ struct ContentView: View {
         }
         
         // 获取当前歌曲名称
-        let songName = loginManager.cloudSongs.first(where: { $0.id == cloudSongId })?.name ?? "未知歌曲"
+        let songName = songManager.cloudSongs.first(where: { $0.id == cloudSongId })?.name ?? "未知歌曲"
         
         // 调用匹配API
-        loginManager.matchCloudSong(cloudSongId: cloudSongId, matchSongId: matchSongId) { success, message, updatedSong in
+        songManager.matchCloudSong(cloudSongId: cloudSongId, matchSongId: matchSongId) { success, message, updatedSong in
             DispatchQueue.main.async {
                 matchLogs.append(LogEntry(
                     songName: songName,
@@ -156,8 +157,8 @@ struct ContentView: View {
                 
                 // 保留更新歌曲信息的逻辑
                 if success, let song = updatedSong {
-                    if let index = self.loginManager.cloudSongs.firstIndex(where: { $0.id == cloudSongId }) {
-                        self.loginManager.cloudSongs[index] = song
+                    if let index = self.songManager.cloudSongs.firstIndex(where: { $0.id == cloudSongId }) {
+                        self.songManager.cloudSongs[index] = song
                     }
                 }
                 

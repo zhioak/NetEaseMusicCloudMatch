@@ -5,6 +5,7 @@ struct SongTableView: View {
     @Binding var searchText: String
     let performMatch: (String, String, @escaping (Bool, String) -> Void) -> Void
     @StateObject private var loginManager = LoginManager.shared
+    @StateObject private var songManager = CloudSongManager.shared
     
     // 状态管理
     @State private var sortOrder = [KeyPathComparator(\CloudSong.addTime, order: .reverse)]
@@ -16,7 +17,7 @@ struct SongTableView: View {
     
     // 计算总页数
     private var totalPages: Int {
-        let total = loginManager.totalSongCount
+        let total = songManager.totalSongCount
         return max(1, Int(ceil(Double(total) / Double(itemsPerPage))))
     }
     
@@ -124,14 +125,14 @@ struct SongTableView: View {
                     totalPages: totalPages,
                     onPageChange: { page in
                         currentPage = page
-                        loginManager.fetchCloudSongs(page: page, limit: itemsPerPage)
+                        songManager.fetchCloudSongs(page: page, limit: itemsPerPage)
                     }
                 )
                 Spacer()
             }
         }
         .onAppear {
-            loginManager.fetchCloudSongs(page: currentPage, limit: itemsPerPage)
+            songManager.fetchCloudSongs(page: currentPage, limit: itemsPerPage)
         }
         .onChange(of: sortOrder) { _, newValue in
             withAnimation {
@@ -367,7 +368,7 @@ private struct PaginationControl: View {
                     }
             }
             
-            // 下一页图标
+            // 下一页��标
             Image(systemName: "chevron.right")
                 .foregroundColor(currentPage < totalPages ? .blue : .gray)
                 .frame(width: 32, height: 28)
