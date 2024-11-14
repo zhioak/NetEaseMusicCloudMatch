@@ -1,7 +1,17 @@
 import SwiftUI
 
+// 重命名为 LogEntry
+struct LogEntry: Identifiable {
+    let id = UUID()
+    let songName: String      // 歌曲名
+    let cloudSongId: String   // 云盘歌曲ID
+    let matchSongId: String   // 匹配目标ID
+    let message: String       // 其他信息
+    let isSuccess: Bool
+}
+
 struct LogView: View {
-    let logs: [MatchLogEntry]
+    let logs: [LogEntry]
     
     var body: some View {
         ScrollViewReader { proxy in
@@ -37,9 +47,9 @@ struct LogView: View {
     }
 }
 
-// 日志条目行视图
+// 更新 LogEntryRow
 struct LogEntryRow: View {
-    let log: MatchLogEntry
+    let log: LogEntry
     let isLatest: Bool
     
     var body: some View {
@@ -79,18 +89,18 @@ struct LogEntryRow: View {
     }
 }
 
-// 日志条目预览
+// 更新预览
 struct LogView_Previews: PreviewProvider {
     static var previews: some View {
         LogView(logs: [
-            MatchLogEntry(
+            LogEntry(
                 songName: "测试歌曲",
                 cloudSongId: "123456",
                 matchSongId: "789012",
                 message: "",
                 isSuccess: true
             ),
-            MatchLogEntry(
+            LogEntry(
                 songName: "测试歌曲2",
                 cloudSongId: "345678",
                 matchSongId: "901234",

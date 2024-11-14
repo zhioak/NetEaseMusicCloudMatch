@@ -1,21 +1,11 @@
 import SwiftUI
 
-// 日志记录结构体
-struct MatchLogEntry: Identifiable {
-    let id = UUID()
-    let songName: String      // 歌曲名
-    let cloudSongId: String   // 云盘歌曲ID
-    let matchSongId: String   // 匹配目标ID
-    let message: String       // 其他信息
-    let isSuccess: Bool
-}
-
 // 主视图结构体
 struct ContentView: View {
     // 状态管理
     @StateObject private var loginManager = LoginManager.shared  // 使用单例模式管理登录状态
     @State private var searchText = ""      // 搜索框的文本
-    @State private var matchLogs: [MatchLogEntry] = []  // 新增日志数组
+    @State private var matchLogs: [LogEntry] = []  // 更新类型
     
     var body: some View {
         // 使用GeometryReader来获取可用空间尺寸，实现响应式布局
@@ -137,7 +127,7 @@ struct ContentView: View {
         // 验证输入
         guard !matchSongId.isEmpty else {
             let message = "请输入匹配ID"
-            matchLogs.append(MatchLogEntry(
+            matchLogs.append(LogEntry(
                 songName: "",
                 cloudSongId: cloudSongId,
                 matchSongId: "",
@@ -154,7 +144,7 @@ struct ContentView: View {
         // 调用匹配API
         loginManager.matchCloudSong(cloudSongId: cloudSongId, matchSongId: matchSongId) { success, message, updatedSong in
             DispatchQueue.main.async {
-                matchLogs.append(MatchLogEntry(
+                matchLogs.append(LogEntry(
                     songName: songName,
                     cloudSongId: cloudSongId,
                     matchSongId: matchSongId,
@@ -185,7 +175,7 @@ struct LoginView: View {
             Text("请使用网易音乐 App 扫描二维码登录")
                 .padding()
             
-            // 二维码显示区域
+            // 二维码示区域
             ZStack {
                 // 显示二维码图片或加提示
                 if let image = loginManager.qrCodeImage {
