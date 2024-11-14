@@ -115,13 +115,6 @@ struct ContentView: View {
         }
     }
     
-    // 格化日志时间
-    private func formatLogTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm:ss"
-        return formatter.string(from: date)
-    }
-    
     // 执行匹配操作的函数
     private func performMatch(cloudSongId: String, matchSongId: String, completion: @escaping (Bool, String) -> Void = { _, _ in }) {
         // 验证输入
