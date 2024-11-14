@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CamelCaseConfig">
+    <option name="cb3State" value="false" />
+    <option name="cb6State" value="false" />
+    <option name="cb7State" value="false" />
+    <option name="model">
+      <array>
+        <option value="snake_case" />
+        <option value="camelCase" />
+        <option value="SNAKE_CASE" />
+        <option value="kebab-case" />
+        <option value="CamelCase" />
+        <option value="space case" />
+        <option value="Camel Case" />
+      </array>
+    </option>
+  </component>
+</project>
