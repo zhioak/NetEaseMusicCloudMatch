@@ -22,12 +22,15 @@ class LoginManager: ObservableObject {
     // 这些属性使用 @Published 包装器，当值改变时会自动通知 UI 更新
     @Published var qrCodeImage: NSImage?         // 登录二维码图片
     @Published var isLoggedIn = false           // 登录状态
-    @Published var username = ""                 // 用户名
-    @Published var userAvatarURL: URL?          // 用户头像URL
     @Published var qrCodeStatus: QRCodeStatus = .loading  // 二维码状态
-    @Published var userAvatar: NSImage?         // 用户头像图片
-    @Published private(set) var isGettingQRCode = false // 是否正在获取二维码
-    @Published var userId: String = ""          // 用户ID
+    @Published var isGettingQRCode = false // 是否正在获取二维码
+    @Published private(set) var userInfo: UserInfo?
+    
+    // MARK: - 计算属性
+    var username: String { userInfo?.username ?? "" }
+    var userId: String { userInfo?.userId ?? "" }
+    var userAvatar: NSImage? { userInfo?.avatar }
+    var userAvatarURL: URL? { userInfo?.avatarURL }
     
     // MARK: - 私有属性
     private var key: String = ""                // 二维码key
@@ -39,7 +42,6 @@ class LoginManager: ObservableObject {
     private let secretKey = "TA3YiYCfY2dDJQgg"
     private let encSecKey = "84ca47bca10bad09a6b04c5c927ef077d9b9f1e37098aa3eac6ea70eb59df0aa28b691b7e75e4f1f9831754919ea784c8f74fbfadf2898b0be17849fd656060162857830e241aba44991601f137624094c114ea8d17bce815b0cd4e5b8e2fbaba978c6d1d14dc3d1faf852bdd28818031ccdaaa13a6018e1024e2aae98844210"
     
-    private var userToken: String = ""          // 用户登录令牌
     private let loginExpirationDays = 30        // 登录信息过期天数
     private var isLoadingUserInfo = false       // 是否正在加载用户信息
     
@@ -70,69 +72,46 @@ class LoginManager: ObservableObject {
         getQRKey()
     }
     
-    // 加载保存的用户信息
+    // 加载用户信息
     private func loadUserInfo() {
-        // 防止重复加载
         guard !isLoadingUserInfo else { return }
         isLoadingUserInfo = true
         
-        // 从 UserDefaults 获取保存的用户信息
-        if let savedUsername = UserDefaults.standard.string(forKey: "username"),
-           let savedToken = UserDefaults.standard.string(forKey: "userToken"),
-           let savedAvatarURL = UserDefaults.standard.url(forKey: "userAvatarURL"),
-           let savedUserId = UserDefaults.standard.string(forKey: "userId"),
-           let loginTime = UserDefaults.standard.object(forKey: "loginTime") as? Date {
+        if let savedData = UserDefaults.standard.data(forKey: "userInfo"),
+           let savedUserInfo = try? JSONDecoder().decode(UserInfo.self, from: savedData),
+           Date().timeIntervalSince(savedUserInfo.loginTime) < Double(loginExpirationDays * 24 * 60 * 60) {
             
-            // 检查登录是否在有效期内（30天）
-            if Date().timeIntervalSince(loginTime) < Double(loginExpirationDays * 24 * 60 * 60) {
-                // 恢复用户信息
-                username = savedUsername
-                userToken = savedToken
-                userAvatarURL = savedAvatarURL
-                userId = savedUserId
-                isLoggedIn = true
-                
-                // 打印调试信息
-                print("本地加载的用户信息:")
-                print("用户名: \(username)")
-                print("用户ID: \(userId)")
-                print("头像URL: \(userAvatarURL?.absoluteString ?? "无")")
-                print("登录时间: \(loginTime)")
-                print("用户Token: \(userToken)")
-                
-                // 下载用户头像
-                if let avatarURL = userAvatarURL {
-                    downloadUserAvatar(from: avatarURL)
-                }
-            } else {
-                print("登录已过期，需要重新登录")
-                clearUserInfo()
+            self.userInfo = savedUserInfo
+            self.isLoggedIn = true
+            
+            // 下载用户头像
+            if let avatarURL = savedUserInfo.avatarURL {
+                downloadUserAvatar(from: avatarURL)
             }
+            
+            print("成功加载用户信息: \(savedUserInfo.username)")
         } else {
-            print("没有找到保存的用户信息")
+            print("没有找到有效的用户信息")
+            clearUserInfo()
         }
         
         isLoadingUserInfo = false
     }
     
-    // 保存用户信息到本地
+    // 保存用户信息
     private func saveUserInfo() {
-        // 使用 UserDefaults 保存用户信息
-        UserDefaults.standard.set(username, forKey: "username")
-        UserDefaults.standard.set(userToken, forKey: "userToken")
-        UserDefaults.standard.set(userAvatarURL, forKey: "userAvatarURL")
-        UserDefaults.standard.set(Date(), forKey: "loginTime")
-        print("用户信息已保存")
+        if let userInfo = userInfo,
+           let encodedData = try? JSONEncoder().encode(userInfo) {
+            UserDefaults.standard.set(encodedData, forKey: "userInfo")
+            print("用户信息已保存")
+        }
     }
     
-    // 清除本地保存的用户信息
+    // 清除用户信息
     private func clearUserInfo() {
-        // 从 UserDefaults 中移除所有用户相关信息
-        UserDefaults.standard.removeObject(forKey: "username")
-        UserDefaults.standard.removeObject(forKey: "userToken")
-        UserDefaults.standard.removeObject(forKey: "userAvatarURL")
-        UserDefaults.standard.removeObject(forKey: "loginTime")
-        UserDefaults.standard.removeObject(forKey: "userId")
+        userInfo = nil
+        isLoggedIn = false
+        UserDefaults.standard.removeObject(forKey: "userInfo")
         print("用户信息已清除")
     }
     
@@ -273,13 +252,18 @@ class LoginManager: ObservableObject {
             case .success(let json):
                 if let profile = json["profile"] as? [String: Any] {
                     DispatchQueue.main.async {
-                        self.username = profile["nickname"] as? String ?? "未知用户"
-                        self.userId = String(profile["userId"] as? Int ?? 0)
-                        UserDefaults.standard.set(self.userId, forKey: "userId")
+                        self.userInfo = UserInfo(
+                            username: profile["nickname"] as? String ?? "未知用户",
+                            userId: String(profile["userId"] as? Int ?? 0),
+                            avatarURL: URL(string: profile["avatarUrl"] as? String ?? ""),
+                            token: "",
+                            loginTime: Date()
+                        )
+                        UserDefaults.standard.set(self.userInfo, forKey: "userInfo")
                         
                         if let avatarUrlString = profile["avatarUrl"] as? String,
                            let avatarUrl = URL(string: avatarUrlString) {
-                            self.userAvatarURL = avatarUrl
+                            self.userInfo?.avatarURL = avatarUrl
                             print("准备下载头像: \(avatarUrl)")
                             self.downloadUserAvatar(from: avatarUrl)
                         }
@@ -300,7 +284,9 @@ class LoginManager: ObservableObject {
             case .success(let data):
                 if let image = NSImage(data: data) {
                     DispatchQueue.main.async {
-                        self?.userAvatar = image
+                        var updatedUserInfo = self?.userInfo
+                        updatedUserInfo?.avatar = image
+                        self?.userInfo = updatedUserInfo
                     }
                 }
             case .failure(let error):
@@ -318,10 +304,7 @@ class LoginManager: ObservableObject {
         // 重置状态
         qrCodeStatus = .loading
         isLoggedIn = false
-        username = ""
-        userAvatar = nil
-        userId = ""
-        userToken = ""
+        userInfo = nil
         // 重新开始登录流程
         startLoginProcess()
     }
