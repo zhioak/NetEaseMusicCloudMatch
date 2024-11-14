@@ -16,6 +16,8 @@ class LoginManager: ObservableObject {
     // 使用单例模式确保整个应用只有一个登录管理实例
     static let shared = LoginManager()
     
+    private let networkManager = NetworkManager.shared
+    
     // MARK: - Published 属性
     // 这些属性使用 @Published 包装器，当值改变时会自动通知 UI 更新
     @Published var qrCodeImage: NSImage?         // 登录二维码图片
@@ -137,58 +139,28 @@ class LoginManager: ObservableObject {
     // 获取登录二维码的key
     private func getQRKey() {
         print("正在获取二维码 key")
-        let urlString = "https://music.163.com/api/login/qrcode/unikey?type=1"
-        guard let url = URL(string: urlString) else {
-            print("Invalid URL")
-            return
-        }
-        
-        // 创建网络请求
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        
-        // 发起网络请求
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            // 错误处理
-            if let error = error {
-                print("获取二维码 key 时出错: \(error)")
-                return
-            }
+        networkManager.get(
+            endpoint: "https://music.163.com/api/login/qrcode/unikey",
+            parameters: ["type": 1]
+        ) { [weak self] result in
+            guard let self = self else { return }
             
-            // 打印HTTP状态码
-            if let httpResponse = response as? HTTPURLResponse {
-                print("HTTP 状态码: \(httpResponse.statusCode)")
-            }
-            
-            // 处理响应数据
-            if let data = data, !data.isEmpty {
-                print("收到的数据: \(String(data: data, encoding: .utf8) ?? "无法解码")")
-                do {
-                    if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
-                        if let code = json["code"] as? Int, code == 200 {
-                            if let unikey = json["unikey"] as? String {
-                                print("成功获取二维码 key: \(unikey)")
-                                // 在主线程更新UI
-                                DispatchQueue.main.async {
-                                    self.key = unikey
-                                    self.getQRCode()
-                                }
-                            } else {
-                                print("无法从响应中解析 unikey")
-                            }
-                        } else {
-                            print("请求失败，错误码：\(json["code"] ?? "未知")")
-                        }
-                    } else {
-                        print("无法解析JSON响应")
+            switch result {
+            case .success(let json):
+                if let code = json["code"] as? Int, code == 200,
+                   let unikey = json["unikey"] as? String {
+                    print("成功获取二维码 key: \(unikey)")
+                    DispatchQueue.main.async {
+                        self.key = unikey
+                        self.getQRCode()
                     }
-                } catch {
-                    print("解析 JSON 时出错: \(error)")
+                } else {
+                    print("无法从响应中解析 unikey")
                 }
-            } else {
-                print("没有收到数据或数据为空")
+            case .failure(let error):
+                print("获取二维码 key 失败: \(error)")
             }
-        }.resume()
+        }
     }
     
     // 生成登录二维码
@@ -235,8 +207,8 @@ class LoginManager: ObservableObject {
     private func startPolling() {
         print("开始轮询登录状态")
         // 每3秒检查一次登录状态
-        timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
-            self.checkLoginStatus()
+        timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
+            self?.checkLoginStatus()
         }
     }
     
@@ -249,80 +221,39 @@ class LoginManager: ObservableObject {
         }
         
         print("检查登录状态")
-        let urlString = "https://music.163.com/api/login/qrcode/client/login"
-        guard let url = URL(string: urlString) else {
-            print("Invalid URL")
-            return
-        }
-        
-        // 构建请求
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        
-        // 设置请求参数
-        let parameters: [String: Any] = [
-            "key": key,
-            "type": 1
-        ]
-        request.httpBody = parameters.percentEncoded()
-        
-        // 发起网络请求
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            // 错误处理
-            if let error = error {
-                print("检查登录状态时出错: \(error)")
-                return
-            }
+        networkManager.post(
+            endpoint: "https://music.163.com/api/login/qrcode/client/login",
+            parameters: ["key": key, "type": 1]
+        ) { [weak self] result in
+            guard let self = self else { return }
             
-            // 打印HTTP状态码
-            if let httpResponse = response as? HTTPURLResponse {
-                print("HTTP 状态码: \(httpResponse.statusCode)")
-            }
-            
-            // 处理响应数据
-            if let data = data, !data.isEmpty {
-                print("收到的数据: \(String(data: data, encoding: .utf8) ?? "无法解码")")
-                do {
-                    if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
-                        if let code = json["code"] as? Int {
-                            print("收到登录状态响应，代码: \(code)")
-                            DispatchQueue.main.async {
-                                switch code {
-                                case 803: // 登录成功
-                                    self.isLoggedIn = true
-                                    // 保存userToken
-                                    if let cookie = (response as? HTTPURLResponse)?.allHeaderFields["Set-Cookie"] as? String {
-                                        self.userToken = cookie
-                                    }
-                                    self.stopPolling()
-                                    print("登录成功")
-                                    self.getUserInfo()
-                                case 800: // 二维码过期
-                                    if !self.isLoggedIn {
-                                        print("二维码过期")
-                                        self.qrCodeStatus = .expired
-                                        self.stopPolling()
-                                    }
-                                default: // 等待扫码
-                                    if !self.isLoggedIn {
-                                        print("未登录，继续等待")
-                                    }
-                                }
+            switch result {
+            case .success(let json):
+                if let code = json["code"] as? Int {
+                    DispatchQueue.main.async {
+                        switch code {
+                        case 803: // 登录成功
+                            self.isLoggedIn = true
+                            self.stopPolling()
+                            print("登录成功")
+                            self.getUserInfo()
+                        case 800: // 二维码过期
+                            if !self.isLoggedIn {
+                                print("二维码过期")
+                                self.qrCodeStatus = .expired
+                                self.stopPolling()
                             }
-                        } else {
-                            print("无法从响应中解析 code")
+                        default: // 等待扫码
+                            if !self.isLoggedIn {
+                                print("未登录，继续等待")
+                            }
                         }
-                    } else {
-                        print("无法解析JSON响应")
                     }
-                } catch {
-                    print("解析 JSON 时出错: \(error)")
                 }
-            } else {
-                print("没有收到数据或数据为空")
+            case .failure(let error):
+                print("检查登录状态失败: \(error)")
             }
-        }.resume()
+        }
     }
     
     // 停止登录状态轮询
@@ -333,93 +264,49 @@ class LoginManager: ObservableObject {
     
     // 获取用户信息
     private func getUserInfo() {
-        let urlString = "https://music.163.com/api/nuser/account/get"
-        guard let url = URL(string: urlString) else {
-            print("Invalid URL")
-            return
-        }
-        
-        // 构建请求
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        
-        // 发起网络请求获取用户信息
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("获取用户信息时出错: \(error)")
-                return
-            }
+        networkManager.post(
+            endpoint: "https://music.163.com/api/nuser/account/get"
+        ) { [weak self] result in
+            guard let self = self else { return }
             
-            if let data = data {
-                do {
-                    // 解析用户信息JSON数据
-                    if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-                       let profile = json["profile"] as? [String: Any] {
-                        DispatchQueue.main.async {
-                            // 更新用户基本信息
-                            self.username = profile["nickname"] as? String ?? "未知用户"
-                            self.userId = String(profile["userId"] as? Int ?? 0)
-                            UserDefaults.standard.set(self.userId, forKey: "userId")
-                            
-                            // 处理用户头像
-                            if let avatarUrlString = profile["avatarUrl"] as? String,
-                               let avatarUrl = URL(string: avatarUrlString) {
-                                self.userAvatarURL = avatarUrl
-                                print("准备下载头像: \(avatarUrl)")
-                                self.downloadUserAvatar(from: avatarUrl)
-                            } else {
-                                print("无法获取头像 URL")
-                            }
-                            
-                            // 打印调试信息
-                            print("用户信息:")
-                            print("用户名: \(self.username)")
-                            print("头像URL: \(self.userAvatarURL?.absoluteString ?? "无")")
-                            print("他信息: \(profile)")
-                            
-                            // 保存用户信息到本地
-                            self.saveUserInfo()
+            switch result {
+            case .success(let json):
+                if let profile = json["profile"] as? [String: Any] {
+                    DispatchQueue.main.async {
+                        self.username = profile["nickname"] as? String ?? "未知用户"
+                        self.userId = String(profile["userId"] as? Int ?? 0)
+                        UserDefaults.standard.set(self.userId, forKey: "userId")
+                        
+                        if let avatarUrlString = profile["avatarUrl"] as? String,
+                           let avatarUrl = URL(string: avatarUrlString) {
+                            self.userAvatarURL = avatarUrl
+                            print("准备下载头像: \(avatarUrl)")
+                            self.downloadUserAvatar(from: avatarUrl)
                         }
-                    } else {
-                        print("无法解析用户信息")
+                        
+                        self.saveUserInfo()
                     }
-                } catch {
-                    print("解析用户信息时出错: \(error)")
                 }
+            case .failure(let error):
+                print("获取用户信息失败: \(error)")
             }
-        }.resume()
+        }
     }
     
     // 下载用户头像
     private func downloadUserAvatar(from url: URL) {
-        print("开始下载头像: \(url)")
-        URLSession.shared.dataTask(with: url) { data, response, error in
-            if let error = error {
-                print("下载头像时出错: \(error)")
-                return
-            }
-            
-            // 打印HTTP状态码
-            if let httpResponse = response as? HTTPURLResponse {
-                print("头像下载 HTTP 状态码: \(httpResponse.statusCode)")
-            }
-            
-            // 处理头像数据
-            if let data = data {
-                print("收到头像数据，大小: \(data.count) 字节")
+        networkManager.downloadImage(from: url) { [weak self] result in
+            switch result {
+            case .success(let data):
                 if let image = NSImage(data: data) {
                     DispatchQueue.main.async {
-                        self.userAvatar = image
-                        print("头像成功下载并设置，大小: \(image.size)")
+                        self?.userAvatar = image
                     }
-                } else {
-                    print("无法从数据创��� NSImage")
                 }
-            } else {
-                print("没有收到头像数据")
+            case .failure(let error):
+                print("下载头像失败: \(error)")
             }
-        }.resume()
+        }
     }
     
     // 退出登录
