@@ -13,7 +13,13 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 // 根据登录状态显示不同的界面
                 if !loginManager.isLoggedIn {
-                    LoginView(loginManager: loginManager)  // 未登录显示登录视图
+                    // 将 LoginView 包装在 VStack 中并居中
+                    VStack {
+                        Spacer()
+                        LoginView(loginManager: loginManager)
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity)
                 } else {
                     // 主界面布局
                     VStack(alignment: .leading, spacing: 0) {
@@ -103,8 +109,11 @@ struct ContentView: View {
                 }
             }
         }
-        // 设置窗口最小尺寸，确保UI布局不会过于拥挤
-        .frame(minWidth: 800, minHeight: 500)
+        // 调整未登录状态下的窗口尺寸为 260x400
+        .frame(
+            minWidth: loginManager.isLoggedIn ? 800 : 260,
+            minHeight: loginManager.isLoggedIn ? 500 : 400
+        )
         .onAppear {
             // 视图出现时根据登录状态执行相应操作
             if loginManager.isLoggedIn {
@@ -154,57 +163,6 @@ struct ContentView: View {
                 
                 completion(success, message)
             }
-        }
-    }
-}
-
-// 录视图组件
-struct LoginView: View {
-    @ObservedObject var loginManager: LoginManager  // 登录管理器
-    
-    var body: some View {
-        VStack {
-            // 登录提示文本
-            Text("请使用网易音乐 App 扫描二维码登录")
-                .padding()
-            
-            // 二维码示区域
-            ZStack {
-                // 显示二维码图片或加提示
-                if let image = loginManager.qrCodeImage {
-                    Image(nsImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 200, height: 200)
-                        // 二维码过期时降低透明度
-                        .opacity(loginManager.qrCodeStatus == .expired ? 0.5 : 1)
-                } else {
-                    Text("加载二维码中...")
-                }
-                
-                // 二维码过期时显示的遮罩层
-                if loginManager.qrCodeStatus == .expired {
-                    VStack {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                        Text("二维码过期")
-                            .padding(.top)
-                    }
-                    .frame(width: 200, height: 200)
-                    .background(Color.black.opacity(0.6))
-                }
-            }
-            .frame(width: 200, height: 200)
-            // 点击过期的二维码时重新获取
-            .onTapGesture {
-                if loginManager.qrCodeStatus == .expired {
-                    loginManager.startLoginProcess()
-                }
-            }
-        }
-        // 视图出现时自动开始登录流程
-        .onAppear {
-            loginManager.startLoginProcess()
         }
     }
 }
