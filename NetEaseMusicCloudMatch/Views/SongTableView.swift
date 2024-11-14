@@ -4,7 +4,6 @@ struct SongTableView: View {
     @Binding var songs: [CloudSong]
     @Binding var searchText: String
     let performMatch: (String, String, @escaping (Bool, String) -> Void) -> Void
-    @StateObject private var loginManager = LoginManager.shared
     @StateObject private var songManager = CloudSongManager.shared
     
     // 状态管理
@@ -19,6 +18,19 @@ struct SongTableView: View {
     private var totalPages: Int {
         let total = songManager.totalSongCount
         return max(1, Int(ceil(Double(total) / Double(itemsPerPage))))
+    }
+    
+    // 过滤后的歌曲列表
+    private var filteredSongs: [CloudSong] {
+        if searchText.isEmpty {
+            return songs
+        } else {
+            return songs.filter { song in
+                song.name.localizedCaseInsensitiveContains(searchText) ||
+                song.artist.localizedCaseInsensitiveContains(searchText) ||
+                song.album.localizedCaseInsensitiveContains(searchText)
+            }
+        }
     }
     
     var body: some View {
@@ -151,19 +163,6 @@ struct SongTableView: View {
         .onChange(of: selection) { _, newSelection in
             if let selectedId = newSelection.first {
                 startEditing(songId: selectedId)
-            }
-        }
-    }
-    
-    // 过滤后的歌曲列表
-    private var filteredSongs: [CloudSong] {
-        if searchText.isEmpty {
-            return songs
-        } else {
-            return songs.filter { song in
-                song.name.localizedCaseInsensitiveContains(searchText) ||
-                song.artist.localizedCaseInsensitiveContains(searchText) ||
-                song.album.localizedCaseInsensitiveContains(searchText)
             }
         }
     }
@@ -368,7 +367,7 @@ private struct PaginationControl: View {
                     }
             }
             
-            // 下一页��标
+            // 下一页标
             Image(systemName: "chevron.right")
                 .foregroundColor(currentPage < totalPages ? .blue : .gray)
                 .frame(width: 32, height: 28)
