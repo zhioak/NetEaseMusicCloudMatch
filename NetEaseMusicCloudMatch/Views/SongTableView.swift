@@ -412,4 +412,107 @@ private struct PaginationControl: View {
         
         return range
     }
+}
+
+// 在文件末尾添加预览代码
+#Preview {
+    // 创建模拟数据
+    let mockSongs = [
+        CloudSong(
+            json: [
+                "simpleSong": [
+                    "id": 1234567,
+                    "name": "测试歌曲1",
+                    "ar": [["name": "测试歌手1"]],
+                    "al": [
+                        "name": "测试专辑1",
+                        "picUrl": "https://p2.music.126.net/6y-UleORITEDbvrOLV0Q8A==/5639395138885805.jpg"
+                    ],
+                    "dt": 180000
+                ],
+                "fileName": "test1.mp3",
+                "fileSize": 8388608,
+                "bitrate": 320000,
+                "addTime": Date().timeIntervalSince1970 * 1000
+            ]
+        ),
+        CloudSong(
+            json: [
+                "simpleSong": [
+                    "id": 7654321,
+                    "name": "测试歌曲2",
+                    "ar": [["name": "测试歌手2"]],
+                    "al": [
+                        "name": "测试专辑2",
+                        "picUrl": "https://p2.music.126.net/6y-UleORITEDbvrOLV0Q8A==/5639395138885805.jpg"
+                    ],
+                    "dt": 240000
+                ],
+                "fileName": "test2.mp3",
+                "fileSize": 12582912,
+                "bitrate": 320000,
+                "addTime": (Date().timeIntervalSince1970 - 86400) * 1000
+            ]
+        )
+    ].compactMap { $0 }
+
+    return SongTableView(
+        songs: .constant(mockSongs),
+        searchText: .constant(""),
+        performMatch: { _, _, completion in
+            completion(true, "匹配成功")
+        }
+    )
+    .frame(height: 400)
+}
+
+// 添加一个带搜索状态的预览
+#Preview("带搜索") {
+    let mockSongs = [
+        CloudSong(
+            json: [
+                "simpleSong": [
+                    "id": 1234567,
+                    "name": "周杰伦 - 晴天",
+                    "ar": [["name": "周杰伦"]],
+                    "al": [
+                        "name": "叶惠美",
+                        "picUrl": "https://p2.music.126.net/6y-UleORITEDbvrOLV0Q8A==/5639395138885805.jpg"
+                    ],
+                    "dt": 180000
+                ],
+                "fileName": "周杰伦 - 晴天.mp3",
+                "fileSize": 8388608,
+                "bitrate": 320000,
+                "addTime": Date().timeIntervalSince1970 * 1000
+            ]
+        ),
+        CloudSong(
+            json: [
+                "simpleSong": [
+                    "id": 7654321,
+                    "name": "林俊杰 - 江南",
+                    "ar": [["name": "林俊杰"]],
+                    "al": [
+                        "name": "第二天堂",
+                        "picUrl": "https://p2.music.126.net/6y-UleORITEDbvrOLV0Q8A==/5639395138885805.jpg"
+                    ],
+                    "dt": 240000
+                ],
+                "fileName": "林俊杰 - 江南.mp3",
+                "fileSize": 12582912,
+                "bitrate": 320000,
+                "addTime": (Date().timeIntervalSince1970 - 86400) * 1000
+            ]
+        )
+    ].compactMap { $0 }
+
+    return SongTableView(
+        songs: .constant(mockSongs),
+        searchText: .constant("周杰伦"),
+        performMatch: { _, _, completion in
+            completion(true, "匹配成功")
+        }
+    )
+    .frame(height: 400)
 } 
