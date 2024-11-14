@@ -825,10 +825,11 @@ struct PaginationControl: View {
     let onPageChange: (Int) -> Void
     
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 4) {
             // 上一页图标
             Image(systemName: "chevron.left")
                 .foregroundColor(currentPage > 1 ? .blue : .gray)
+                .frame(width: 32, height: 28)
                 .onTapGesture {
                     if currentPage > 1 {
                         onPageChange(currentPage - 1)
@@ -850,7 +851,7 @@ struct PaginationControl: View {
             ForEach(getPageRange(), id: \.self) { page in
                 Text("\(page)")
                     .foregroundColor(currentPage == page ? .white : .primary)
-                    .frame(width: 28, height: 28)
+                    .frame(width: 32, height: 28)
                     .background(currentPage == page ? Color.blue : Color.clear)
                     .cornerRadius(6)
                     .contentShape(Rectangle())
@@ -872,6 +873,7 @@ struct PaginationControl: View {
             // 下一页图标
             Image(systemName: "chevron.right")
                 .foregroundColor(currentPage < totalPages ? .blue : .gray)
+                .frame(width: 32, height: 28)
                 .onTapGesture {
                     if currentPage < totalPages {
                         onPageChange(currentPage + 1)
