@@ -1,15 +1,5 @@
 import SwiftUI
 
-// 重命名为 LogEntry
-struct LogEntry: Identifiable {
-    let id = UUID()
-    let songName: String      // 歌曲名
-    let cloudSongId: String   // 云盘歌曲ID
-    let matchSongId: String   // 匹配目标ID
-    let message: String       // 其他信息
-    let isSuccess: Bool
-}
-
 struct LogView: View {
     let logs: [LogEntry]
     
@@ -77,15 +67,26 @@ struct LogEntryRow: View {
                 Text(log.message)
                     .font(.system(size: 12))
             }
-        
             
             Spacer()
+            
+            // 添加时间戳显示
+            Text(formatTimestamp(log.timestamp))
+                .font(.system(size: 10))
+                .foregroundColor(.secondary)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
         .frame(maxWidth: .infinity)
         .background(Color.accentColor.opacity(isLatest ? 0.1 : 0))
         .cornerRadius(4)
+    }
+    
+    // 格式化时间戳
+    private func formatTimestamp(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter.string(from: date)
     }
 }
 

@@ -216,4 +216,19 @@ class CloudSongManager: ObservableObject {
             }
         }.resume()
     }
+}
+
+// 添加 Dictionary 扩展
+extension Dictionary {
+    // 将字典转换为URL编码的字符串
+    func percentEncoded() -> Data? {
+        return map { key, value in
+            // 对key和value进行URL编码
+            let escapedKey = "\(key)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+            let escapedValue = "\(value)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+            return escapedKey + "=" + escapedValue
+        }
+        .joined(separator: "&")
+        .data(using: .utf8)
+    }
 } 
