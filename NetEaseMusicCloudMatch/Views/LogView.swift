@@ -1,14 +1,14 @@
 import SwiftUI
 
 struct LogView: View {
-    let logs: [LogEntry]
+    let logs: [LogInfo]
     
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(logs) { log in
-                        LogEntryRow(
+                        LogInfoRow(
                             log: log,
                             isLatest: log.id == logs.last?.id
                         )
@@ -37,9 +37,9 @@ struct LogView: View {
     }
 }
 
-// 更新 LogEntryRow
-struct LogEntryRow: View {
-    let log: LogEntry
+// 更新 LogInfoRow
+struct LogInfoRow: View {
+    let log: LogInfo
     let isLatest: Bool
     
     var body: some View {
@@ -94,14 +94,14 @@ struct LogEntryRow: View {
 struct LogView_Previews: PreviewProvider {
     static var previews: some View {
         LogView(logs: [
-            LogEntry(
+            LogInfo(
                 songName: "测试歌曲",
                 cloudSongId: "123456",
                 matchSongId: "789012",
                 message: "",
                 isSuccess: true
             ),
-            LogEntry(
+            LogInfo(
                 songName: "测试歌曲2",
                 cloudSongId: "345678",
                 matchSongId: "901234",

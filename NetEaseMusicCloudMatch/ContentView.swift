@@ -5,7 +5,7 @@ struct ContentView: View {
     // 状态管理
     @StateObject private var loginManager = LoginManager.shared  // 使用单例模式管理登录状态
     @State private var searchText = ""      // 搜索框的文本
-    @State private var matchLogs: [LogEntry] = []  // 更新类型
+    @State private var matchLogs: [LogInfo] = []  // 更新类型
     @StateObject private var songManager = CloudSongManager.shared
     
     var body: some View {
@@ -74,7 +74,7 @@ struct ContentView: View {
         // 验证输入
         guard !matchSongId.isEmpty else {
             let message = "请输入匹配ID"
-            matchLogs.append(LogEntry(
+            matchLogs.append(LogInfo(
                 songName: "",
                 cloudSongId: cloudSongId,
                 matchSongId: "",
@@ -91,7 +91,7 @@ struct ContentView: View {
         // 调用匹配API
         songManager.matchCloudSong(cloudSongId: cloudSongId, matchSongId: matchSongId) { success, message, updatedSong in
             DispatchQueue.main.async {
-                matchLogs.append(LogEntry(
+                matchLogs.append(LogInfo(
                     songName: songName,
                     cloudSongId: cloudSongId,
                     matchSongId: matchSongId,
