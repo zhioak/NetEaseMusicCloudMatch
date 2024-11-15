@@ -1,7 +1,7 @@
 import Foundation
 
 struct CloudSong: Identifiable, Equatable, Comparable {
-    var id: String  // 改为可变
+    var id: String
     let name: String
     let artist: String
     let album: String
@@ -11,25 +11,7 @@ struct CloudSong: Identifiable, Equatable, Comparable {
     let addTime: Date
     let picUrl: String
     let duration: Int
-    var matchStatus: MatchStatus = .notMatched
-    var matchId: String?  // 新增属性
-    
-    enum MatchStatus: Equatable {
-        case notMatched
-        case matched
-        case failed(String)
-        
-        static func == (lhs: MatchStatus, rhs: MatchStatus) -> Bool {
-            switch (lhs, rhs) {
-            case (.notMatched, .notMatched), (.matched, .matched):
-                return true
-            case let (.failed(lhsMessage), .failed(rhsMessage)):
-                return lhsMessage == rhsMessage
-            default:
-                return false
-            }
-        }
-    }
+    var matchId: String?
     
     init?(json: [String: Any]) {
         guard let simpleSong = json["simpleSong"] as? [String: Any],
@@ -79,27 +61,13 @@ struct CloudSong: Identifiable, Equatable, Comparable {
         for comparator in comparators {
             let result = comparator.compare(lhs, rhs)
             if result != .orderedSame {
-                print("Comparing \(lhs.name) with \(rhs.name) using \(comparator.keyPath): \(result)")
                 return result
             }
         }
-        print("All comparisons were equal for \(lhs.name) and \(rhs.name)")
         return .orderedSame
     }
 
     static func == (lhs: CloudSong, rhs: CloudSong) -> Bool {
         lhs.id == rhs.id
-    }
-}
-
-// 添加 MatchStatus 的 Comparable 扩展
-extension CloudSong.MatchStatus: Comparable {
-    static func < (lhs: CloudSong.MatchStatus, rhs: CloudSong.MatchStatus) -> Bool {
-        switch (lhs, rhs) {
-        case (.notMatched, .matched), (.notMatched, .failed), (.failed, .matched):
-            return true
-        case (.matched, _), (_, .notMatched), (.failed, .failed):
-            return false
-        }
     }
 } 
