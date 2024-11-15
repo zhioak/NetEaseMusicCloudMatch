@@ -10,6 +10,9 @@ class CloudSongManager: ObservableObject {
     @Published var isLoadingCloudSongs = false
     @Published private(set) var totalSongCount: Int = -1
     
+    // 添加一个标志位来防止重复请求
+    private var isFetching = false
+    
     private init() {}
     
     // 获取云盘歌曲列表
@@ -19,7 +22,14 @@ class CloudSongManager: ObservableObject {
             return
         }
         
+        // 如果正在获取中，则直接返回
+        guard !isFetching else {
+            print("正在获取云盘歌曲中，请稍候...")
+            return
+        }
+        
         print("开始获取云盘歌曲")
+        isFetching = true
         isLoadingCloudSongs = true
         
         let offset = (page - 1) * limit
@@ -34,8 +44,13 @@ class CloudSongManager: ObservableObject {
         ) { [weak self] result in
             guard let self = self else { return }
             
-            // 在函数结束时重置加载状态
-            defer { DispatchQueue.main.async { self.isLoadingCloudSongs = false } }
+            // 在函数结束时重置状态
+            defer { 
+                DispatchQueue.main.async {
+                    self.isLoadingCloudSongs = false
+                    self.isFetching = false
+                }
+            }
             
             switch result {
             case .success(let json):

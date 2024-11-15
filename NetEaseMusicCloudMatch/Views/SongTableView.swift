@@ -143,9 +143,6 @@ struct SongTableView: View {
                 Spacer()
             }
         }
-        .onAppear {
-            songManager.fetchCloudSongs(page: currentPage, limit: itemsPerPage)
-        }
         .onChange(of: sortOrder) { _, newValue in
             withAnimation {
                 songs.sort { lhs, rhs in

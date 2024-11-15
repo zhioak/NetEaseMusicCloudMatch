@@ -84,7 +84,6 @@ class LoginManager: ObservableObject {
             self.userInfo = savedUserInfo
             self.isLoggedIn = true
             
-            // 下载用户头像
             if let avatarURL = savedUserInfo.avatarURL {
                 downloadUserAvatar(from: avatarURL)
             }
@@ -193,7 +192,6 @@ class LoginManager: ObservableObject {
     
     // 检查用户是否已扫码登录
     private func checkLoginStatus() {
-        // 如果已登录则停止轮询
         guard !isLoggedIn else {
             stopPolling()
             return
@@ -216,6 +214,8 @@ class LoginManager: ObservableObject {
                             self.stopPolling()
                             print("登录成功")
                             self.getUserInfo()
+                            // 登录成功后获取一次云盘歌曲
+                            CloudSongManager.shared.fetchCloudSongs()
                         case 800: // 二维码过期
                             if !self.isLoggedIn {
                                 print("二维码过期")
@@ -305,7 +305,7 @@ class LoginManager: ObservableObject {
         qrCodeStatus = .loading
         isLoggedIn = false
         userInfo = nil
-        // 重新开始登录流程
+        // 新开始登录流程
         startLoginProcess()
     }
 }

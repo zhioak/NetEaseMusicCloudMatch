@@ -24,7 +24,7 @@ struct ContentView: View {
                 } else {
                     // 主界面布局
                     VStack(alignment: .leading, spacing: 0) {
-                        // 顶部工具栏：包含用户信息和搜索栏
+                        // 顶部工具栏：含用户信息和搜索栏
                         HeaderView(loginManager: loginManager, searchText: $searchText)
                         
                         // 音乐列表视图 - 使用双向绑定确保数据同步
@@ -60,11 +60,12 @@ struct ContentView: View {
             minHeight: loginManager.isLoggedIn ? 500 : 400
         )
         .onAppear {
-            // 视图出现时根据登录状态执行相应操作
-            if loginManager.isLoggedIn {
-                songManager.fetchCloudSongs()
-            } else {
+            if !loginManager.isLoggedIn {
                 loginManager.startLoginProcess()
+            }
+            // 只在已登录状态下获取一次歌曲列表
+            else if songManager.cloudSongs.isEmpty {
+                songManager.fetchCloudSongs()
             }
         }
     }
