@@ -8,7 +8,7 @@ class CloudSongManager: ObservableObject {
     
     @Published var cloudSongs: [CloudSong] = []
     @Published var isLoadingCloudSongs = false
-    @Published var totalSongCount: Int = 0
+    @Published private(set) var totalSongCount: Int = -1
     
     private init() {}
     
@@ -41,10 +41,12 @@ class CloudSongManager: ObservableObject {
             case .success(let json):
                 if let code = json["code"] as? Int, code == 200,
                    let data = json["data"] as? [[String: Any]] {
-                    // 解析总数
-                    if let count = json["count"] as? Int {
+                    // 只在首次加载（totalSongCount == -1）时更新总数
+                    if self.totalSongCount == -1,
+                       let count = json["count"] as? Int {
                         DispatchQueue.main.async {
                             self.totalSongCount = count
+                            print("首次加载，更新总数: \(count)")
                         }
                     }
                     
