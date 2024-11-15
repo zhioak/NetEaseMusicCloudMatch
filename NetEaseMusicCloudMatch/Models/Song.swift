@@ -1,6 +1,6 @@
 import Foundation
 
-struct CloudSong: Identifiable, Equatable, Comparable {
+struct Song: Identifiable, Equatable, Comparable {
     var id: String
     let name: String
     let artist: String
@@ -14,6 +14,7 @@ struct CloudSong: Identifiable, Equatable, Comparable {
     var matchId: String?
     
     init?(json: [String: Any]) {
+        // 保持原有的初始化逻辑不变
         guard let simpleSong = json["simpleSong"] as? [String: Any],
               let id = simpleSong["id"] as? Int,
               let name = simpleSong["name"] as? String else {
@@ -23,14 +24,12 @@ struct CloudSong: Identifiable, Equatable, Comparable {
         self.id = String(id)
         self.name = name
         
-        // 处理艺术家信息
         if let ar = simpleSong["ar"] as? [[String: Any]], let firstArtist = ar.first {
             self.artist = firstArtist["name"] as? String ?? "未知艺术家"
         } else {
             self.artist = json["artist"] as? String ?? "未知艺术家"
         }
         
-        // 处理专辑信息
         if let al = simpleSong["al"] as? [String: Any] {
             self.album = al["name"] as? String ?? "未知专辑"
             self.picUrl = al["picUrl"] as? String ?? ""
@@ -49,15 +48,14 @@ struct CloudSong: Identifiable, Equatable, Comparable {
             self.addTime = Date()
         }
         
-        // 修正：从 simpleSong 中解析 dt 字段
         self.duration = simpleSong["dt"] as? Int ?? 0
     }
     
-    static func < (lhs: CloudSong, rhs: CloudSong) -> Bool {
+    static func < (lhs: Song, rhs: Song) -> Bool {
         lhs.addTime < rhs.addTime
     }
 
-    static func compare(_ lhs: CloudSong, _ rhs: CloudSong, by comparators: [KeyPathComparator<CloudSong>]) -> ComparisonResult {
+    static func compare(_ lhs: Song, _ rhs: Song, by comparators: [KeyPathComparator<Song>]) -> ComparisonResult {
         for comparator in comparators {
             let result = comparator.compare(lhs, rhs)
             if result != .orderedSame {
@@ -67,7 +65,7 @@ struct CloudSong: Identifiable, Equatable, Comparable {
         return .orderedSame
     }
 
-    static func == (lhs: CloudSong, rhs: CloudSong) -> Bool {
+    static func == (lhs: Song, rhs: Song) -> Bool {
         lhs.id == rhs.id
     }
 } 

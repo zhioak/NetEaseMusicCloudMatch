@@ -1,13 +1,13 @@
 import SwiftUI
 
 struct SongTableView: View {
-    @Binding var songs: [CloudSong]
+    @Binding var songs: [Song]
     @Binding var searchText: String
     let performMatch: (String, String, @escaping (Bool, String) -> Void) -> Void
     @StateObject private var songManager = CloudSongManager.shared
     
     // 状态管理
-    @State private var sortOrder = [KeyPathComparator(\CloudSong.addTime, order: .reverse)]
+    @State private var sortOrder = [KeyPathComparator(\Song.addTime, order: .reverse)]
     @State private var editingId: String?
     @State private var tempEditId: String = ""
     @State private var selection: Set<String> = []
@@ -21,7 +21,7 @@ struct SongTableView: View {
     }
     
     // 过滤后的歌曲列表
-    private var filteredSongs: [CloudSong] {
+    private var filteredSongs: [Song] {
         if searchText.isEmpty {
             return songs
         } else {
@@ -223,8 +223,8 @@ struct SongTableView: View {
 // 在文件末尾添加 EditableTextField 结构体
 private struct EditableTextField: View {
     @Binding var text: String
-    let song: CloudSong
-    @Binding var songs: [CloudSong]
+    let song: Song
+    @Binding var songs: [Song]
     @Binding var editingId: String?
     @Binding var selection: Set<String>
     let performMatch: (String, String, @escaping (Bool, String) -> Void) -> Void
@@ -432,7 +432,7 @@ private struct PaginationButtonStyle: ButtonStyle {
 #Preview {
     // 创建模拟数据
     let mockSongs = [
-        CloudSong(
+        Song(
             json: [
                 "simpleSong": [
                     "id": 1234567,
@@ -450,7 +450,7 @@ private struct PaginationButtonStyle: ButtonStyle {
                 "addTime": Date().timeIntervalSince1970 * 1000
             ]
         ),
-        CloudSong(
+        Song(
             json: [
                 "simpleSong": [
                     "id": 7654321,
@@ -483,7 +483,7 @@ private struct PaginationButtonStyle: ButtonStyle {
 // 添加一个带搜索状态的预览
 #Preview("带搜索") {
     let mockSongs = [
-        CloudSong(
+        Song(
             json: [
                 "simpleSong": [
                     "id": 1234567,
@@ -501,7 +501,7 @@ private struct PaginationButtonStyle: ButtonStyle {
                 "addTime": Date().timeIntervalSince1970 * 1000
             ]
         ),
-        CloudSong(
+        Song(
             json: [
                 "simpleSong": [
                     "id": 7654321,

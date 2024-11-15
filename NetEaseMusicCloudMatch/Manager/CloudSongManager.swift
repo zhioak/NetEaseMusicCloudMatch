@@ -6,7 +6,7 @@ class CloudSongManager: ObservableObject {
     private let networkManager = NetworkManager.shared
     private let loginManager = LoginManager.shared
     
-    @Published var cloudSongs: [CloudSong] = []
+    @Published var cloudSongs: [Song] = []
     @Published var isLoadingCloudSongs = false
     @Published private(set) var totalSongCount: Int = -1
     
@@ -51,7 +51,7 @@ class CloudSongManager: ObservableObject {
                     }
                     
                     // 解析歌曲数据
-                    let songs = data.compactMap { CloudSong(json: $0) }
+                    let songs = data.compactMap { Song(json: $0) }
                     DispatchQueue.main.async {
                         self.cloudSongs = songs
                     }
@@ -66,7 +66,7 @@ class CloudSongManager: ObservableObject {
     }
     
     // 匹配云盘歌曲
-    func matchCloudSong(cloudSongId: String, matchSongId: String, completion: @escaping (Bool, String, CloudSong?) -> Void) {
+    func matchCloudSong(cloudSongId: String, matchSongId: String, completion: @escaping (Bool, String, Song?) -> Void) {
         guard loginManager.isLoggedIn else {
             completion(false, "用户未登录", nil)
             return
@@ -86,7 +86,7 @@ class CloudSongManager: ObservableObject {
                     switch code {
                     case 200:
                         if let matchData = json["matchData"] as? [String: Any],
-                           let updatedSong = CloudSong(json: matchData) {
+                           let updatedSong = Song(json: matchData) {
                             completion(true, "匹配成功", updatedSong)
                         } else {
                             completion(true, "匹配成功", nil)
