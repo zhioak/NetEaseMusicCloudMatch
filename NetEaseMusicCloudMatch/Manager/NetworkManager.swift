@@ -3,6 +3,9 @@ import Foundation
 class NetworkManager {
     static let shared = NetworkManager()
     
+    // 添加调试开关
+    static var isDebugMode = false
+    
     private init() {}
     
     enum HTTPMethod: String {
@@ -68,12 +71,14 @@ class NetworkManager {
             }
         }
         
-        // 打印请求信息（调试用）
-        print("Request URL: \(request.url?.absoluteString ?? "")")
-        print("Request Method: \(request.httpMethod ?? "")")
-        print("Request Headers: \(request.allHTTPHeaderFields ?? [:])")
-        if let body = request.httpBody {
-            print("Request Body: \(String(data: body, encoding: .utf8) ?? "")")
+        // 修改打印逻辑，增加调试开关判断
+        if NetworkManager.isDebugMode {
+            print("Request URL: \(request.url?.absoluteString ?? "")")
+            print("Request Method: \(request.httpMethod ?? "")")
+            print("Request Headers: \(request.allHTTPHeaderFields ?? [:])")
+            if let body = request.httpBody {
+                print("Request Body: \(String(data: body, encoding: .utf8) ?? "")")
+            }
         }
         
         // 发起网络请求
@@ -84,10 +89,12 @@ class NetworkManager {
                 return
             }
             
-            // 打印响应信息（调试用）
-            if let httpResponse = response as? HTTPURLResponse {
-                print("Response Status Code: \(httpResponse.statusCode)")
-                print("Response Headers: \(httpResponse.allHeaderFields)")
+            // 修改响应信息打印，增加调试开关判断
+            if NetworkManager.isDebugMode {
+                if let httpResponse = response as? HTTPURLResponse {
+                    print("Response Status Code: \(httpResponse.statusCode)")
+                    print("Response Headers: \(httpResponse.allHeaderFields)")
+                }
             }
             
             guard let httpResponse = response as? HTTPURLResponse else {
@@ -105,13 +112,17 @@ class NetworkManager {
                 
                 do {
                     if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                        print("Response Data: \(json)")
+                        if NetworkManager.isDebugMode {
+                            print("Response Data: \(json)")
+                        }
                         completion(.success(json))
                     } else {
                         completion(.failure(.decodingError))
                     }
                 } catch {
-                    print("JSON Parsing Error: \(error)")
+                    if NetworkManager.isDebugMode {
+                        print("JSON Parsing Error: \(error)")
+                    }
                     completion(.failure(.decodingError))
                 }
             case 401:
