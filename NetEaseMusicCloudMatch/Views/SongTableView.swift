@@ -317,7 +317,7 @@ private struct FocusedTextField: NSViewRepresentable {
     }
 }
 
-// 在 FocusedTextField 后面添加 PaginationControl 结构体
+// 修改 PaginationControl 结构体
 private struct PaginationControl: View {
     let currentPage: Int
     let totalPages: Int
@@ -325,67 +325,52 @@ private struct PaginationControl: View {
     
     var body: some View {
         HStack(spacing: 4) {
-            // 上一页图标
-            Image(systemName: "chevron.left")
-                .foregroundColor(currentPage > 1 ? .blue : .gray)
-                .frame(width: 32, height: 28)
-                .onTapGesture {
-                    if currentPage > 1 {
-                        onPageChange(currentPage - 1)
-                    }
+            // 上一页按钮
+            Button(action: {
+                if currentPage > 1 {
+                    onPageChange(currentPage - 1)
                 }
-                .onHover { hovering in
-                    if currentPage > 1 {
-                        NSCursor.pointingHand.set()
-                    } else {
-                        NSCursor.operationNotAllowed.set()
-                    }
-                    if !hovering {
-                        NSCursor.arrow.set()
-                    }
-                }
+            }) {
+                Image(systemName: "chevron.left")
+                    .foregroundColor(currentPage > 1 ? .blue : .gray)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentShape(Rectangle())
+            }
+            .frame(width: 32, height: 28)
+            .buttonStyle(PaginationButtonStyle())
+            .disabled(currentPage <= 1)
             
             // 页码按钮
             ForEach(getPageRange(), id: \.self) { page in
-                Text("\(page)")
-                    .foregroundColor(currentPage == page ? .white : .primary)
-                    .frame(width: 32, height: 28)
-                    .background(currentPage == page ? Color.blue : Color.clear)
-                    .cornerRadius(6)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
+                Button(action: {
+                    if page != currentPage {
                         onPageChange(page)
                     }
-                    .onHover { hovering in
-                        if currentPage != page {
-                            if hovering {
-                                NSCursor.pointingHand.set()
-                            } else {
-                                NSCursor.arrow.set()
-                            }
-                        }
-                    }
+                }) {
+                    Text("\(page)")
+                        .foregroundColor(currentPage == page ? .white : .primary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .contentShape(Rectangle())
+                }
+                .frame(width: 32, height: 28)
+                .buttonStyle(PaginationButtonStyle(isCurrentPage: currentPage == page))
+                .disabled(page == currentPage)
             }
             
-            // 下一页标
-            Image(systemName: "chevron.right")
-                .foregroundColor(currentPage < totalPages ? .blue : .gray)
-                .frame(width: 32, height: 28)
-                .onTapGesture {
-                    if currentPage < totalPages {
-                        onPageChange(currentPage + 1)
-                    }
+            // 下一页按钮
+            Button(action: {
+                if currentPage < totalPages {
+                    onPageChange(currentPage + 1)
                 }
-                .onHover { hovering in
-                    if currentPage < totalPages {
-                        NSCursor.pointingHand.set()
-                    } else {
-                        NSCursor.operationNotAllowed.set()
-                    }
-                    if !hovering {
-                        NSCursor.arrow.set()
-                    }
-                }
+            }) {
+                Image(systemName: "chevron.right")
+                    .foregroundColor(currentPage < totalPages ? .blue : .gray)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentShape(Rectangle())
+            }
+            .frame(width: 32, height: 28)
+            .buttonStyle(PaginationButtonStyle())
+            .disabled(currentPage >= totalPages)
         }
         .padding(.vertical, 8)
     }
@@ -411,6 +396,35 @@ private struct PaginationControl: View {
         }
         
         return range
+    }
+}
+
+// 修改自定义按钮样式
+private struct PaginationButtonStyle: ButtonStyle {
+    var isCurrentPage: Bool = false
+    @State private var isHovering = false
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(backgroundColor(configuration.isPressed))
+            )
+            .onHover { hovering in
+                isHovering = hovering
+            }
+    }
+    
+    private func backgroundColor(_ isPressed: Bool) -> Color {
+        if isCurrentPage {
+            return .blue
+        } else if isPressed {
+            return .secondary.opacity(0.3)
+        } else if isHovering {
+            return .secondary.opacity(0.1)
+        } else {
+            return .clear
+        }
     }
 }
 
