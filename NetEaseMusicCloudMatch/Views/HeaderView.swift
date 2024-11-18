@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HeaderView: View {
     @ObservedObject var loginManager: LoginManager
+    @ObservedObject private var userManager = UserManager.shared
     @Binding var searchText: String
     @StateObject private var songManager = CloudSongManager.shared
     
@@ -10,7 +11,7 @@ struct HeaderView: View {
             // 用户信息区域：头像和用户名
             HStack(spacing: 10) {
                 // 用户头像 - 如果有头像则显示，否则显示默认图标
-                if let avatar = loginManager.userAvatar {
+                if let avatar = userManager.userAvatar {
                     Image(nsImage: avatar)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
@@ -25,7 +26,7 @@ struct HeaderView: View {
                 
                 // 用户名和登出按钮垂直排列
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(loginManager.username)
+                    Text(userManager.username)
                         .fontWeight(.medium)
                     Button("Sign Out") {
                         loginManager.logout()

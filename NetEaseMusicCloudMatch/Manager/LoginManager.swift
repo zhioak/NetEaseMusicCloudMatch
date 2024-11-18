@@ -17,20 +17,16 @@ class LoginManager: ObservableObject {
     static let shared = LoginManager()
     
     private let networkManager = NetworkManager.shared
+    private let userManager = UserManager.shared
     
     // MARK: - Published 属性
     // 这些属性使用 @Published 包装器，当值改变时会自动通知 UI 更新
     @Published var qrCodeImage: NSImage?         // 登录二维码图片
-    @Published var isLoggedIn = false           // 登录状态
     @Published var qrCodeStatus: QRCodeStatus = .loading  // 二维码状态
-    @Published var isGettingQRCode = false // 是否正在获取二维码
-    @Published private(set) var userInfo: UserInfo?
+    @Published var isGettingQRCode = false      // 是否正在获取二维码
     
     // MARK: - 计算属性
-    var username: String { userInfo?.username ?? "" }
-    var userId: String { userInfo?.userId ?? "" }
-    var userAvatar: NSImage? { userInfo?.avatar }
-    var userAvatarURL: URL? { userInfo?.avatarURL }
+    var isLoggedIn: Bool { userManager.isLoggedIn }
     
     // MARK: - 私有属性
     private var key: String = ""                // 二维码key
@@ -42,9 +38,6 @@ class LoginManager: ObservableObject {
     private let secretKey = "TA3YiYCfY2dDJQgg"
     private let encSecKey = "84ca47bca10bad09a6b04c5c927ef077d9b9f1e37098aa3eac6ea70eb59df0aa28b691b7e75e4f1f9831754919ea784c8f74fbfadf2898b0be17849fd656060162857830e241aba44991601f137624094c114ea8d17bce815b0cd4e5b8e2fbaba978c6d1d14dc3d1faf852bdd28818031ccdaaa13a6018e1024e2aae98844210"
     
-    private let loginExpirationDays = 30        // 登录信息过期天数
-    private var isLoadingUserInfo = false       // 是否正在加载用户信息
-    
     // MARK: - 枚举定义
     // 二维码状态枚举
     enum QRCodeStatus {
@@ -54,9 +47,7 @@ class LoginManager: ObservableObject {
     }
     
     // MARK: - 初始化方法
-    private init() {
-        loadUserInfo() // 初始化时加载保存的用户信息
-    }
+    private init() {}
     
     func startLoginProcess() {
         if isLoggedIn {
@@ -70,48 +61,6 @@ class LoginManager: ObservableObject {
         print("开始登录流程")
         qrCodeStatus = .loading
         getQRKey()
-    }
-    
-    // 加载用户信息
-    private func loadUserInfo() {
-        guard !isLoadingUserInfo else { return }
-        isLoadingUserInfo = true
-        
-        if let savedData = UserDefaults.standard.data(forKey: "userInfo"),
-           let savedUserInfo = try? JSONDecoder().decode(UserInfo.self, from: savedData),
-           Date().timeIntervalSince(savedUserInfo.loginTime) < Double(loginExpirationDays * 24 * 60 * 60) {
-            
-            self.userInfo = savedUserInfo
-            self.isLoggedIn = true
-            
-            if let avatarURL = savedUserInfo.avatarURL {
-                downloadUserAvatar(from: avatarURL)
-            }
-            
-            print("成功加载用户信息: \(savedUserInfo.username)")
-        } else {
-            print("没有找到有效的用户信息")
-            clearUserInfo()
-        }
-        
-        isLoadingUserInfo = false
-    }
-    
-    // 保存用户信息
-    private func saveUserInfo() {
-        if let userInfo = userInfo,
-           let encodedData = try? JSONEncoder().encode(userInfo) {
-            UserDefaults.standard.set(encodedData, forKey: "userInfo")
-            print("用户信息已保存")
-        }
-    }
-    
-    // 清除用户信息
-    private func clearUserInfo() {
-        userInfo = nil
-        isLoggedIn = false
-        UserDefaults.standard.removeObject(forKey: "userInfo")
-        print("用户信息已清除")
     }
     
     // 获取登录二维码的key
@@ -192,7 +141,7 @@ class LoginManager: ObservableObject {
     
     // 检查用户是否已扫码登录
     private func checkLoginStatus() {
-        guard !isLoggedIn else {
+        guard !userManager.isLoggedIn else {
             stopPolling()
             return
         }
@@ -210,20 +159,17 @@ class LoginManager: ObservableObject {
                     DispatchQueue.main.async {
                         switch code {
                         case 803: // 登录成功
-                            self.isLoggedIn = true
                             self.stopPolling()
                             print("登录成功")
                             self.getUserInfo()
-                            // 登录成功后获取一次云盘歌曲
-                            CloudSongManager.shared.fetchCloudSongs()
                         case 800: // 二维码过期
-                            if !self.isLoggedIn {
+                            if !self.userManager.isLoggedIn {
                                 print("二维码过期")
                                 self.qrCodeStatus = .expired
                                 self.stopPolling()
                             }
                         default: // 等待扫码
-                            if !self.isLoggedIn {
+                            if !self.userManager.isLoggedIn {
                                 print("未登录，继续等待")
                             }
                         }
@@ -246,29 +192,13 @@ class LoginManager: ObservableObject {
         networkManager.post(
             endpoint: "https://music.163.com/api/nuser/account/get"
         ) { [weak self] result in
-            guard let self = self else { return }
-            
             switch result {
             case .success(let json):
                 if let profile = json["profile"] as? [String: Any] {
                     DispatchQueue.main.async {
-                        self.userInfo = UserInfo(
-                            username: profile["nickname"] as? String ?? "未知用户",
-                            userId: String(profile["userId"] as? Int ?? 0),
-                            avatarURL: URL(string: profile["avatarUrl"] as? String ?? ""),
-                            token: "",
-                            loginTime: Date()
-                        )
-                        UserDefaults.standard.set(self.userInfo, forKey: "userInfo")
-                        
-                        if let avatarUrlString = profile["avatarUrl"] as? String,
-                           let avatarUrl = URL(string: avatarUrlString) {
-                            self.userInfo?.avatarURL = avatarUrl
-                            print("准备下载头像: \(avatarUrl)")
-                            self.downloadUserAvatar(from: avatarUrl)
-                        }
-                        
-                        self.saveUserInfo()
+                        UserManager.shared.updateUserInfo(from: profile)
+                        // 登录成功后获取一次云盘歌曲
+                        CloudSongManager.shared.fetchCloudSongs()
                     }
                 }
             case .failure(let error):
@@ -277,35 +207,11 @@ class LoginManager: ObservableObject {
         }
     }
     
-    // 下载用户头像
-    private func downloadUserAvatar(from url: URL) {
-        networkManager.downloadImage(from: url) { [weak self] result in
-            switch result {
-            case .success(let data):
-                if let image = NSImage(data: data) {
-                    DispatchQueue.main.async {
-                        var updatedUserInfo = self?.userInfo
-                        updatedUserInfo?.avatar = image
-                        self?.userInfo = updatedUserInfo
-                    }
-                }
-            case .failure(let error):
-                print("下载头像失败: \(error)")
-            }
-        }
-    }
-    
     // 退出登录
     func logout() {
-        // 清除用户数据
-        clearUserInfo()
-        // 停止轮询
+        userManager.clearUserInfo()
         stopPolling()
-        // 重置状态
         qrCodeStatus = .loading
-        isLoggedIn = false
-        userInfo = nil
-        // 新开始登录流程
         startLoginProcess()
     }
 }

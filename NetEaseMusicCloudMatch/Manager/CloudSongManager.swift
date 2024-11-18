@@ -4,7 +4,7 @@ import AppKit
 class CloudSongManager: ObservableObject {
     static let shared = CloudSongManager()
     private let networkManager = NetworkManager.shared
-    private let loginManager = LoginManager.shared
+    private let userManager = UserManager.shared
     
     @Published var cloudSongs: [Song] = []
     @Published var isLoadingCloudSongs = false
@@ -17,7 +17,7 @@ class CloudSongManager: ObservableObject {
     
     // 获取云盘歌曲列表
     func fetchCloudSongs(page: Int = 1, limit: Int = 200) {
-        guard loginManager.isLoggedIn else {
+        guard userManager.isLoggedIn else {
             print("用户未登录，无法获取云盘歌曲")
             return
         }
@@ -72,7 +72,7 @@ class CloudSongManager: ObservableObject {
                     }
                 } else if let code = json["code"] as? Int, code == 301 {
                     print("token过期重新登录")
-                    self.loginManager.logout()
+                    LoginManager.shared.logout()
                 }
             case .failure(let error):
                 print("获取云盘歌曲失败: \(error)")
@@ -82,7 +82,7 @@ class CloudSongManager: ObservableObject {
     
     // 匹配云盘歌曲
     func matchCloudSong(cloudSongId: String, matchSongId: String, completion: @escaping (Bool, String, Song?) -> Void) {
-        guard loginManager.isLoggedIn else {
+        guard userManager.isLoggedIn else {
             completion(false, "用户未登录", nil)
             return
         }
@@ -92,7 +92,7 @@ class CloudSongManager: ObservableObject {
             return
         }
         
-        let endpoint = "https://music.163.com/api/cloud/user/song/match?userId=\(loginManager.userId)&songId=\(cloudSongId)&adjustSongId=\(matchSongId)"
+        let endpoint = "https://music.163.com/api/cloud/user/song/match?userId=\(userManager.userId)&songId=\(cloudSongId)&adjustSongId=\(matchSongId)"
         
         networkManager.get(endpoint: endpoint) { result in
             switch result {
