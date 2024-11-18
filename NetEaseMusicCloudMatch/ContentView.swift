@@ -59,7 +59,7 @@ struct ContentView: View {
             minWidth: loginManager.isLoggedIn ? 800 : 260,
             minHeight: loginManager.isLoggedIn ? 500 : 400
         )
-        .onAppear {
+        .task {
             if !loginManager.isLoggedIn {
                 loginManager.startLoginProcess()
             }
