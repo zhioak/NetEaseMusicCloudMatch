@@ -29,7 +29,9 @@ struct HeaderView: View {
                     Text(userManager.username)
                         .fontWeight(.medium)
                     Button("Sign Out") {
-                        loginManager.logout()
+                        Task { @MainActor in
+                            await loginManager.logout()
+                        }
                     }
                     .buttonStyle(PlainButtonStyle())
                     .foregroundColor(.blue)

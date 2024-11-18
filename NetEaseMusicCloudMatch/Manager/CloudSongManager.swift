@@ -72,7 +72,9 @@ class CloudSongManager: ObservableObject {
                     }
                 } else if let code = json["code"] as? Int, code == 301 {
                     print("token过期重新登录")
-                    LoginManager.shared.logout()
+                    Task { @MainActor in
+                        await LoginManager.shared.logout()
+                    }
                 }
             case .failure(let error):
                 print("获取云盘歌曲失败: \(error)")

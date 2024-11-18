@@ -7,13 +7,14 @@ struct ContentView: View {
     @State private var searchText = ""      // 搜索框的文本
     @State private var matchLogs: [LogInfo] = []  // 更新类型
     @StateObject private var songManager = CloudSongManager.shared
+    @StateObject private var userManager = UserManager.shared
     
     var body: some View {
         // 使用GeometryReader来获取可用空间尺寸，实现响应式布局
         GeometryReader { geometry in
             VStack(spacing: 0) {
                 // 根据登录状态显示不同的界面
-                if !loginManager.isLoggedIn {
+                if !userManager.isLoggedIn {
                     // 将 LoginView 包装在 VStack 中并居中
                     VStack {
                         Spacer()
@@ -56,11 +57,11 @@ struct ContentView: View {
         }
         // 调整未登录状态下的窗口尺寸为 260x400
         .frame(
-            minWidth: loginManager.isLoggedIn ? 800 : 260,
-            minHeight: loginManager.isLoggedIn ? 500 : 400
+            minWidth: userManager.isLoggedIn ? 800 : 260,
+            minHeight: userManager.isLoggedIn ? 500 : 400
         )
         .task {
-            if !loginManager.isLoggedIn {
+            if !userManager.isLoggedIn {
                 loginManager.startLoginProcess()
             }
             // 只在已登录状态下获取一次歌曲列表
