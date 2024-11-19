@@ -13,6 +13,9 @@ class SongManager: ObservableObject {
     // 添加一个标志位来防止重复请求
     private var isFetching = false
     
+    // 添加匹配日志属性
+    @Published var matchLogs: [LogInfo] = []
+    
     private init() {}
     
     // 获取云盘歌曲列表
@@ -115,6 +118,49 @@ class SongManager: ObservableObject {
                 }
             case .failure(let error):
                 completion(false, "匹配失败: \(error)", nil)
+            }
+        }
+    }
+    
+    // 将 performMatch 移动到这里
+    func performMatch(cloudSongId: String, matchSongId: String, completion: @escaping (Bool, String) -> Void = { _, _ in }) {
+        // 验证输入
+        guard !matchSongId.isEmpty else {
+            let message = "请输入匹配ID"
+            matchLogs.append(LogInfo(
+                songName: "",
+                cloudSongId: cloudSongId,
+                matchSongId: "",
+                message: message,
+                isSuccess: false
+            ))
+            completion(false, message)
+            return
+        }
+        
+        // 获取当前歌曲名称
+        let songName = cloudSongs.first(where: { $0.id == cloudSongId })?.name ?? "未知歌曲"
+        
+        // 调用匹配API
+        matchCloudSong(cloudSongId: cloudSongId, matchSongId: matchSongId) { [weak self] success, message, updatedSong in
+            guard let self = self else { return }
+            
+            DispatchQueue.main.async {
+                self.matchLogs.append(LogInfo(
+                    songName: songName,
+                    cloudSongId: cloudSongId,
+                    matchSongId: matchSongId,
+                    message: message,
+                    isSuccess: success
+                ))
+                
+                if success, let song = updatedSong {
+                    if let index = self.cloudSongs.firstIndex(where: { $0.id == cloudSongId }) {
+                        self.cloudSongs[index] = song
+                    }
+                }
+                
+                completion(success, message)
             }
         }
     }
