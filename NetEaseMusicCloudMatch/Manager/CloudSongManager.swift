@@ -53,7 +53,7 @@ class CloudSongManager: ObservableObject {
             }
             
             switch result {
-            case .success(let json):
+            case .success(let (json, _)):  // 解构元组，获取 json 数据
                 if let code = json["code"] as? Int, code == 200,
                    let data = json["data"] as? [[String: Any]] {
                     // 只在首次加载（totalSongCount == -1）时更新总数
@@ -98,7 +98,7 @@ class CloudSongManager: ObservableObject {
         
         networkManager.get(endpoint: endpoint) { result in
             switch result {
-            case .success(let json):
+            case .success(let (json, _)):  // 解构元组，获取 json 数据
                 if let code = json["code"] as? Int {
                     switch code {
                     case 200:

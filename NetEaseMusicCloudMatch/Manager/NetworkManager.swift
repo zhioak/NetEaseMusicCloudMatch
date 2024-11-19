@@ -30,7 +30,7 @@ class NetworkManager {
         method: HTTPMethod = .get,
         parameters: [String: Any]? = nil,
         headers: [String: String]? = nil,
-        completion: @escaping (Result<[String: Any], NetworkError>) -> Void
+        completion: @escaping (Result<([String: Any], HTTPURLResponse), NetworkError>) -> Void
     ) {
         guard let url = URL(string: endpoint) else {
             completion(.failure(.invalidURL))
@@ -115,7 +115,7 @@ class NetworkManager {
                         if NetworkManager.isDebugMode {
                             print("Response Data: \(json)")
                         }
-                        completion(.success(json))
+                        completion(.success((json, httpResponse)))
                     } else {
                         completion(.failure(.decodingError))
                     }
@@ -138,7 +138,7 @@ class NetworkManager {
         endpoint: String,
         parameters: [String: Any]? = nil,
         headers: [String: String]? = nil,
-        completion: @escaping (Result<[String: Any], NetworkError>) -> Void
+        completion: @escaping (Result<([String: Any], HTTPURLResponse), NetworkError>) -> Void
     ) {
         request(
             endpoint: endpoint,
@@ -154,7 +154,7 @@ class NetworkManager {
         endpoint: String,
         parameters: [String: Any]? = nil,
         headers: [String: String]? = nil,
-        completion: @escaping (Result<[String: Any], NetworkError>) -> Void
+        completion: @escaping (Result<([String: Any], HTTPURLResponse), NetworkError>) -> Void
     ) {
         request(
             endpoint: endpoint,

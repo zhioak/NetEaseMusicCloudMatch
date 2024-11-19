@@ -29,6 +29,8 @@ class LoginManager: ObservableObject {
     private var qrCodeUrl: String = ""          // 二维码URL
     private var timer: Timer?                   // 用于轮询登录状态的定时器
     
+    private var userToken: String? = nil
+    
     // 加密相关的密钥
     // 这些是网易云音乐API需要的固定值，用于请求加密
     private let secretKey = "TA3YiYCfY2dDJQgg"
@@ -98,9 +100,11 @@ class LoginManager: ObservableObject {
                 }
             }
             
-            if let code = result["code"] as? Int,
+            let (json, _) = result  // 解构返回的元组
+            
+            if let code = json["code"] as? Int,
                code == 200,
-               let unikey = result["unikey"] as? String {
+               let unikey = json["unikey"] as? String {
                 print("成功获取二维码 key: \(unikey)")
                 return unikey
             } else {
@@ -207,13 +211,21 @@ class LoginManager: ObservableObject {
                 }
             }
             
-            if let code = result["code"] as? Int {
+            let (json, response) = result  // 解构返回的元组
+            
+            if let code = json["code"] as? Int {
                 switch code {
-                case 803: return .success
+                case 803:
+                    // 现在可以直接从 response 中获取 cookie
+                    if let cookie = response.allHeaderFields["Set-Cookie"] as? String {
+                        self.userToken = cookie
+                        print("成功保存用户 Cookie")
+                    }
+                    return .success
                 case 800: return .expired
                 case 801: return .ready
                 default:
-                    let message = result["message"] as? String ?? "未知错误"
+                    let message = json["message"] as? String ?? "未知错误"
                     return .failed(message)
                 }
             }
@@ -244,7 +256,9 @@ class LoginManager: ObservableObject {
                 }
             }
             
-            if let profile = result["profile"] as? [String: Any] {
+            let (json, _) = result  // 解构返回的元组
+            
+            if let profile = json["profile"] as? [String: Any] {
                 return profile
             } else {
                 print("获取用户信息失败：无效的数据格式")
@@ -260,8 +274,14 @@ class LoginManager: ObservableObject {
     @MainActor
     func logout() async {
         stopPolling()  // 确保在退出登录时停止轮询
+        userToken = nil  // 现在可以正确地设置为 nil
         userManager.clearUserInfo()
         qrCodeStatus = .loading
         startLoginProcess()
+    }
+    
+    // 添加获取 userToken 的方法
+    func getUserToken() -> String? {
+        return userToken
     }
 }
