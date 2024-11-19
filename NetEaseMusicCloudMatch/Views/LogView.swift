@@ -44,8 +44,8 @@ struct LogInfoRow: View {
     
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: log.isSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
-                .foregroundColor(log.isSuccess ? .green : .red)
+            Image(systemName: statusIcon)
+                .foregroundColor(statusColor)
                 .font(.system(size: 12))
                 .frame(width: 16)
                    
@@ -54,12 +54,15 @@ struct LogInfoRow: View {
                 .foregroundColor(.blue)
                 .font(.system(size: 12))
                 .lineLimit(1)
-            Text(log.cloudSongId)
+            Text(log.songId)
                 .font(.system(size: 12))
-            Image(systemName: "arrow.right")
+            if !log.matchSongId.isEmpty {    
+                Image(systemName: "arrow.right")
                 .font(.system(size: 9, weight: .bold))
-            Text(log.matchSongId)
-                .font(.system(size: 12))
+                Text(log.matchSongId)
+                    .font(.system(size: 12))
+            }
+            
             if !log.message.isEmpty {
                 Text(":")
                     .font(.system(size: 12, weight: .bold))
@@ -88,6 +91,30 @@ struct LogInfoRow: View {
         formatter.dateFormat = "HH:mm:ss"
         return formatter.string(from: date)
     }
+    
+    // 添加状态图标计算属性
+    private var statusIcon: String {
+        switch log.status {
+        case .success:
+            return "checkmark.circle.fill"
+        case .error:
+            return "xmark.circle.fill"
+        case .info:
+            return "info.circle.fill"
+        }
+    }
+    
+    // 添加状态颜色计算属性
+    private var statusColor: Color {
+        switch log.status {
+        case .success:
+            return .green
+        case .error:
+            return .red
+        case .info:
+            return .blue
+        }
+    }
 }
 
 // 更新预览
@@ -96,17 +123,17 @@ struct LogView_Previews: PreviewProvider {
         LogView(logs: [
             LogInfo(
                 songName: "测试歌曲",
-                cloudSongId: "123456",
+                songId: "123456",
                 matchSongId: "789012",
                 message: "",
-                isSuccess: true
+                status: .success
             ),
             LogInfo(
                 songName: "测试歌曲2",
-                cloudSongId: "345678",
+                songId: "345678",
                 matchSongId: "901234",
                 message: "匹配失败",
-                isSuccess: false
+                status: .error
             )
         ])
         .frame(height: 200)

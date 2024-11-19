@@ -129,10 +129,10 @@ class SongManager: ObservableObject {
             let message = "请输入匹配ID"
             matchLogs.append(LogInfo(
                 songName: "",
-                cloudSongId: cloudSongId,
+                songId: cloudSongId,
                 matchSongId: "",
                 message: message,
-                isSuccess: false
+                status: .error
             ))
             completion(false, message)
             return
@@ -148,10 +148,10 @@ class SongManager: ObservableObject {
             DispatchQueue.main.async {
                 self.matchLogs.append(LogInfo(
                     songName: songName,
-                    cloudSongId: cloudSongId,
+                    songId: cloudSongId,
                     matchSongId: matchSongId,
                     message: message,
-                    isSuccess: success
+                    status: success ? .success : .error
                 ))
                 
                 if success, let song = updatedSong {

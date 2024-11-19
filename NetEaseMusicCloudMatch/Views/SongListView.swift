@@ -212,10 +212,26 @@ struct SongListView: View {
         // 找到对应的歌曲并复制到剪贴板
         if let song = filteredSongs.first(where: { $0.id == songId }) {
             let pasteboard = NSPasteboard.general
-            pasteboard.clearContents()
             // 如果歌手是未知艺术家，则只复制歌曲名
             let textToCopy = song.artist == "未知艺术家" ? song.name : "\(song.name)-\(song.artist)"
-            pasteboard.setString(textToCopy, forType: .string)
+            
+            // 获取当前剪贴板内容
+            let currentPasteboardString = pasteboard.string(forType: .string) ?? ""
+            
+            // 只有当剪贴板内容与要复制的内容不同时才进行复制
+            if currentPasteboardString != textToCopy {
+                pasteboard.clearContents()
+                pasteboard.setString(textToCopy, forType: .string)
+                
+                // 添加复制成功的日志
+                songManager.matchLogs.append(LogInfo(
+                    songName: song.name,
+                    songId: song.id,
+                    matchSongId: "",
+                    message: "歌曲名称已复制",
+                    status: .info
+                ))
+            }
         }
     }
 }
