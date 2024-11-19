@@ -3,7 +3,6 @@ import SwiftUI
 struct SongListView: View {
     @Binding var songs: [Song]
     @Binding var searchText: String
-    let performMatch: (String, String, @escaping (Bool, String) -> Void) -> Void
     @StateObject private var songManager = SongManager.shared
     
     // 状态管理
@@ -55,7 +54,7 @@ struct SongListView: View {
                                 songs: $songs,
                                 editingId: $editingId,
                                 selection: $selection,
-                                performMatch: performMatch,
+                                performMatch: songManager.performMatch,
                                 onTab: selectNextRow,
                                 onShiftTab: selectPreviousRow
                             )
@@ -469,10 +468,7 @@ private struct PaginationButtonStyle: ButtonStyle {
 
     return SongListView(
         songs: .constant(mockSongs),
-        searchText: .constant(""),
-        performMatch: { _, _, completion in
-            completion(true, "匹配成功")
-        }
+        searchText: .constant("")
     )
     .frame(height: 400)
 }
@@ -520,10 +516,7 @@ private struct PaginationButtonStyle: ButtonStyle {
 
     return SongListView(
         songs: .constant(mockSongs),
-        searchText: .constant("周杰伦"),
-        performMatch: { _, _, completion in
-            completion(true, "匹配成功")
-        }
+        searchText: .constant("周杰伦")
     )
     .frame(height: 400)
 } 

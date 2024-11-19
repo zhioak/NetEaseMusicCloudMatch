@@ -33,8 +33,7 @@ struct ContentView: View {
                                 get: { self.songManager.cloudSongs },
                                 set: { self.songManager.cloudSongs = $0 }
                             ),
-                            searchText: $searchText,
-                            performMatch: songManager.performMatch
+                            searchText: $searchText
                         )
                         .frame(maxWidth: .infinity)
                         .frame(height: geometry.size.height * 0.65) // 将表格高度调整为窗口高度的65%
