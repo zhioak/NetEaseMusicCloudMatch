@@ -208,6 +208,15 @@ struct SongListView: View {
     private func startEditing(songId: String) {
         editingId = songId
         tempEditId = songId
+        
+        // 找到对应的歌曲并复制到剪贴板
+        if let song = filteredSongs.first(where: { $0.id == songId }) {
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            // 如果歌手是未知艺术家，则只复制歌曲名
+            let textToCopy = song.artist == "未知艺术家" ? song.name : "\(song.name)-\(song.artist)"
+            pasteboard.setString(textToCopy, forType: .string)
+        }
     }
 }
 
