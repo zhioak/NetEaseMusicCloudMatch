@@ -10,7 +10,7 @@ struct SongListView: View {
     @State private var editingId: String?
     @State private var tempEditId: String = ""
     @State private var selection: Set<String> = []
-    @State private var currentPage = 1
+    @Binding var currentPage: Int
     private let itemsPerPage = 200
     
     // 计算总页数
@@ -463,7 +463,8 @@ private struct PaginationButtonStyle: ButtonStyle {
 
     return SongListView(
         songs: .constant(mockSongs),
-        searchText: .constant("")
+        searchText: .constant(""),
+        currentPage: .constant(1)
     )
     .frame(height: 400)
 }
@@ -511,7 +512,8 @@ private struct PaginationButtonStyle: ButtonStyle {
 
     return SongListView(
         songs: .constant(mockSongs),
-        searchText: .constant("周杰伦")
+        searchText: .constant("周杰伦"),
+        currentPage: .constant(1)
     )
     .frame(height: 400)
 } 

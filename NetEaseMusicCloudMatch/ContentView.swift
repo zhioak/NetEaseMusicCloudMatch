@@ -7,6 +7,7 @@ struct ContentView: View {
     @State private var searchText = ""      // 搜索框的文本
     @StateObject private var songManager = SongManager.shared
     @StateObject private var userManager = UserManager.shared
+    @State private var currentPage = 1  // 添加页码状态
     
     var body: some View {
         // 使用GeometryReader来获取可用空间尺寸，实现响应式布局
@@ -25,7 +26,11 @@ struct ContentView: View {
                     // 主界面布局
                     VStack(alignment: .leading, spacing: 0) {
                         // 顶部工具栏：含用户信息和搜索栏
-                        HeaderView(loginManager: loginManager, searchText: $searchText)
+                        HeaderView(
+                            loginManager: loginManager, 
+                            searchText: $searchText,
+                            currentPage: $currentPage  // 传递 currentPage binding
+                        )
                         
                         // 音乐列表视图 - 使用双向绑定确保数据同步
                         SongListView(
@@ -33,7 +38,8 @@ struct ContentView: View {
                                 get: { self.songManager.cloudSongs },
                                 set: { self.songManager.cloudSongs = $0 }
                             ),
-                            searchText: $searchText
+                            searchText: $searchText,
+                            currentPage: $currentPage  // 传递 currentPage binding
                         )
                         .frame(maxWidth: .infinity)
                         .frame(height: geometry.size.height * 0.65) // 将表格高度调整为窗口高度的65%

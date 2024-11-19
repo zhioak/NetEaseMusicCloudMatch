@@ -4,6 +4,7 @@ struct HeaderView: View {
     @ObservedObject var loginManager: LoginManager
     @ObservedObject private var userManager = UserManager.shared
     @Binding var searchText: String
+    @Binding var currentPage: Int
     @StateObject private var songManager = SongManager.shared
     
     var body: some View {
@@ -55,7 +56,8 @@ struct HeaderView: View {
             
             // 刷新按钮 - 用于重新加载云盘音乐
             Button(action: {
-                songManager.fetchPage()
+                currentPage = 1
+                songManager.fetchPage(page: 1)
             }) {
                 Image(systemName: "arrow.clockwise")
                     .foregroundColor(.blue)
@@ -72,6 +74,7 @@ struct HeaderView: View {
 #Preview {
     HeaderView(
         loginManager: LoginManager.shared,
-        searchText: .constant("")
+        searchText: .constant(""),
+        currentPage: .constant(1)
     )
 } 
