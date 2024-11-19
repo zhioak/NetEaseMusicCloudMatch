@@ -43,12 +43,12 @@ class UserManager: ObservableObject {
     }
     
     // 更新用户信息
-    func updateUserInfo(from profile: [String: Any]) {
+    func updateUserInfo(from profile: [String: Any], token: String? = nil) {
         let newUserInfo = UserInfo(
             username: profile["nickname"] as? String ?? "未知用户",
             userId: String(profile["userId"] as? Int ?? 0),
             avatarURL: URL(string: profile["avatarUrl"] as? String ?? ""),
-            token: "",
+            token: token ?? userInfo?.token ?? "",
             loginTime: Date()
         )
         
@@ -93,5 +93,10 @@ class UserManager: ObservableObject {
                 print("下载头像失败: \(error)")
             }
         }
+    }
+    
+    // 获取当前用户的token
+    func getToken() -> String? {
+        return userInfo?.token
     }
 } 

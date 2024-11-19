@@ -209,14 +209,20 @@ class LoginManager: ObservableObject {
                 }
             }
             
-            let (json, response) = result  // 解构返回的元组
+            let (json, response) = result
             
             if let code = json["code"] as? Int {
                 switch code {
                 case 803:
-                    // 现在可以直接从 response 中获取 cookie
+                    // 获取并保存 cookie
                     if let cookie = response.allHeaderFields["Set-Cookie"] as? String {
                         self.userToken = cookie
+                        // 更新到 UserManager
+                        if let profile = await getUserInfo() {
+                            await MainActor.run {
+                                userManager.updateUserInfo(from: profile, token: cookie)
+                            }
+                        }
                         print("成功保存用户 Cookie")
                     }
                     return .success
