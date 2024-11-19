@@ -25,14 +25,9 @@ struct LoginView: View {
                 
                 // 二维码过期时显示的遮罩层
                 if loginManager.qrCodeStatus == .expired {
-                    VStack {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                        Text("二维码过期")
-                            .padding(.top)
-                    }
-                    .frame(width: 200, height: 200)
-                    .background(Color.black.opacity(0.6))
+                    Text("二维码已过期")
+                        .frame(width: 200, height: 200)
+                        .background(Color.black.opacity(0.6))
                 }
             }
             .frame(width: 200, height: 200)
