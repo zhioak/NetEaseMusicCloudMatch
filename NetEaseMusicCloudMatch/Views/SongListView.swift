@@ -79,14 +79,9 @@ struct SongListView: View {
                 // 歌曲信息列
                 TableColumn("歌曲信息", value: \.name) { song in
                     HStack(spacing: 10) {
-                        AsyncImage(url: URL(string: song.picUrl)) { image in
-                            image.resizable()
-                                .aspectRatio(contentMode: .fit)
-                        } placeholder: {
-                            Color.gray
-                        }
-                        .frame(width: 30, height: 30)
-                        .cornerRadius(4)
+                        CachedAsyncImage(url: URL(string: song.picUrl))
+                            .frame(width: 30, height: 30)
+                            .cornerRadius(4)
                         
                         VStack(alignment: .leading, spacing: 2) {
                             Text(song.name)
