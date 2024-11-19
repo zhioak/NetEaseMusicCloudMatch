@@ -66,7 +66,7 @@ struct ContentView: View {
             }
             // 只在已登录状态下获取一次歌曲列表
             else if songManager.cloudSongs.isEmpty {
-                songManager.fetchCloudSongs()
+                songManager.fetchPage()
             }
         }
     }

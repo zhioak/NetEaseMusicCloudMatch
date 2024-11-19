@@ -16,7 +16,7 @@ class SongManager: ObservableObject {
     private init() {}
     
     // 获取云盘歌曲列表
-    func fetchCloudSongs(page: Int = 1, limit: Int = 200) {
+    func fetchPage(page: Int = 1, limit: Int = 200) {
         guard userManager.isLoggedIn else {
             print("用户未登录，无法获取云盘歌曲")
             return
@@ -28,7 +28,7 @@ class SongManager: ObservableObject {
             return
         }
         
-        print("开始获取云盘歌曲")
+        print("开始获取第 \(page) 页云盘歌曲")
         isFetching = true
         isLoadingCloudSongs = true
         

@@ -55,7 +55,7 @@ struct HeaderView: View {
             
             // 刷新按钮 - 用于重新加载云盘音乐
             Button(action: {
-                songManager.fetchCloudSongs()
+                songManager.fetchPage()
             }) {
                 Image(systemName: "arrow.clockwise")
                     .foregroundColor(.blue)

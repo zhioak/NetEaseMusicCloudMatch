@@ -137,7 +137,7 @@ struct SongListView: View {
                     totalPages: totalPages,
                     onPageChange: { page in
                         currentPage = page
-                        songManager.fetchCloudSongs(page: page, limit: itemsPerPage)
+                        songManager.fetchPage(page: page, limit: itemsPerPage)
                     }
                 )
                 Spacer()

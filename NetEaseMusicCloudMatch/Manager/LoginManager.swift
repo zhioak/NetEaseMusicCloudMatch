@@ -178,7 +178,7 @@ class LoginManager: ObservableObject {
                 if let profile = await getUserInfo() {
                     userManager.updateUserInfo(from: profile)
                     // 登录成功后获取云盘歌曲
-                    SongManager.shared.fetchCloudSongs()
+                    SongManager.shared.fetchPage()
                 }
             case .expired:
                 if !userManager.isLoggedIn {
