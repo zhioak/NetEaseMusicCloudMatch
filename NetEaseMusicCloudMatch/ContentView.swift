@@ -6,7 +6,7 @@ struct ContentView: View {
     @StateObject private var loginManager = LoginManager.shared  // 使用单例模式管理登录状态
     @State private var searchText = ""      // 搜索框的文本
     @State private var matchLogs: [LogInfo] = []  // 更新类型
-    @StateObject private var songManager = CloudSongManager.shared
+    @StateObject private var songManager = SongManager.shared
     @StateObject private var userManager = UserManager.shared
     
     var body: some View {
@@ -29,7 +29,7 @@ struct ContentView: View {
                         HeaderView(loginManager: loginManager, searchText: $searchText)
                         
                         // 音乐列表视图 - 使用双向绑定确保数据同步
-                        SongTableView(
+                        SongListView(
                             songs: Binding(
                                 get: { self.songManager.cloudSongs },
                                 set: { self.songManager.cloudSongs = $0 }

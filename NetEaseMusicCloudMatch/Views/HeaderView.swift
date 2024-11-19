@@ -4,7 +4,7 @@ struct HeaderView: View {
     @ObservedObject var loginManager: LoginManager
     @ObservedObject private var userManager = UserManager.shared
     @Binding var searchText: String
-    @StateObject private var songManager = CloudSongManager.shared
+    @StateObject private var songManager = SongManager.shared
     
     var body: some View {
         HStack {

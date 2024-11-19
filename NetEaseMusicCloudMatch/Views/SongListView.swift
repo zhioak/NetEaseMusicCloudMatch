@@ -1,10 +1,10 @@
 import SwiftUI
 
-struct SongTableView: View {
+struct SongListView: View {
     @Binding var songs: [Song]
     @Binding var searchText: String
     let performMatch: (String, String, @escaping (Bool, String) -> Void) -> Void
-    @StateObject private var songManager = CloudSongManager.shared
+    @StateObject private var songManager = SongManager.shared
     
     // 状态管理
     @State private var sortOrder = [KeyPathComparator(\Song.addTime, order: .reverse)]
@@ -467,7 +467,7 @@ private struct PaginationButtonStyle: ButtonStyle {
         )
     ].compactMap { $0 }
 
-    return SongTableView(
+    return SongListView(
         songs: .constant(mockSongs),
         searchText: .constant(""),
         performMatch: { _, _, completion in
@@ -518,7 +518,7 @@ private struct PaginationButtonStyle: ButtonStyle {
         )
     ].compactMap { $0 }
 
-    return SongTableView(
+    return SongListView(
         songs: .constant(mockSongs),
         searchText: .constant("周杰伦"),
         performMatch: { _, _, completion in

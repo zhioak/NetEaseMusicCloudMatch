@@ -1,8 +1,8 @@
 import Foundation
 import AppKit
 
-class CloudSongManager: ObservableObject {
-    static let shared = CloudSongManager()
+class SongManager: ObservableObject {
+    static let shared = SongManager()
     private let networkManager = NetworkManager.shared
     private let userManager = UserManager.shared
     
