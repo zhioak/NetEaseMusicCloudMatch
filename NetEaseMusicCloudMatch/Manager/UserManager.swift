@@ -53,20 +53,15 @@ class UserManager: ObservableObject {
         )
         
         self.userInfo = newUserInfo
-        saveUserInfo()
-        
-        if let avatarUrlString = profile["avatarUrl"] as? String,
-           let avatarUrl = URL(string: avatarUrlString) {
-            downloadUserAvatar(from: avatarUrl)
-        }
-    }
-    
-    // 保存用户信息
-    private func saveUserInfo() {
         if let userInfo = userInfo,
            let encodedData = try? JSONEncoder().encode(userInfo) {
             UserDefaults.standard.set(encodedData, forKey: "userInfo")
             print("用户信息已保存")
+        }
+        
+        if let avatarUrlString = profile["avatarUrl"] as? String,
+           let avatarUrl = URL(string: avatarUrlString) {
+            downloadUserAvatar(from: avatarUrl)
         }
     }
     
