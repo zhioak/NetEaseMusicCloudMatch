@@ -51,7 +51,12 @@ struct ContentView: View {
                                 .fill(Color.secondary.opacity(0.2))
                                 .frame(height: 1)
                             
-                            LogView(logs: songManager.matchLogs)
+                            LogView(
+                                logs: songManager.matchLogs,
+                                onClear: {
+                                    songManager.matchLogs.removeAll()
+                                }
+                            )
                                 .frame(maxWidth: .infinity)
                         }
                         .frame(maxWidth: .infinity)

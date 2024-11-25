@@ -2,37 +2,54 @@ import SwiftUI
 
 struct LogView: View {
     let logs: [LogInfo]
+    let onClear: () -> Void  // 添加清除回调
     
     var body: some View {
         ScrollViewReader { proxy in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach(logs) { log in
-                        LogInfoRow(
-                            log: log,
-                            isLatest: log.id == logs.last?.id
-                        )
-                        .id(log.id)
+            HStack(spacing: 0) { // 添加水平布局
+                // 主日志内容
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(logs) { log in
+                            LogInfoRow(
+                                log: log,
+                                isLatest: log.id == logs.last?.id
+                            )
+                            .id(log.id)
+                        }
+                        Color.clear
+                            .frame(height: 0)
+                            .id("bottom")
                     }
-                    // 添加一个空视图作为滚动锚点
-                    Color.clear
-                        .frame(height: 0)
-                        .id("bottom")
-                }
-                .frame(maxWidth: .infinity)
-                .onChange(of: logs.count) { _, _ in
-                    // 使用 bottom 锚点进行滚动，并调整延迟时间
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        withAnimation(.easeOut(duration: 0.2)) {
-                            proxy.scrollTo("bottom", anchor: .bottom)
+                    .frame(maxWidth: .infinity)
+                    .onChange(of: logs.count) { _, _ in
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                proxy.scrollTo("bottom", anchor: .bottom)
+                            }
                         }
                     }
+                    .padding(.bottom, 4)
                 }
+                .frame(maxWidth: .infinity)
+                .scrollIndicators(.visible)
                 .padding(.bottom, 4)
+                
+                // 工具栏列
+                VStack {
+                    Button(action: onClear) {
+                        Image(systemName: "trash")
+                            .foregroundColor(.gray)
+                            .font(.system(size: 14))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.vertical, 8)
+                    
+                    Spacer()
+                }
+                .frame(width: 30)
+                .padding(.vertical, 4)
             }
-            .frame(maxWidth: .infinity)
-            .scrollIndicators(.visible)
-            .padding(.bottom, 4)
         }
     }
 }
@@ -73,10 +90,11 @@ struct LogInfoRow: View {
             
             Spacer()
             
-            // 添加时间戳显示
+            // 添加固定宽度的时间戳列
             Text(formatTimestamp(log.timestamp))
                 .font(.system(size: 10))
                 .foregroundColor(.secondary)
+                .frame(width: 60, alignment: .trailing) // 固定宽度
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
@@ -120,22 +138,25 @@ struct LogInfoRow: View {
 // 更新预览
 struct LogView_Previews: PreviewProvider {
     static var previews: some View {
-        LogView(logs: [
-            LogInfo(
-                songName: "测试歌曲",
-                songId: "123456",
-                matchSongId: "789012",
-                message: "",
-                status: .success
-            ),
-            LogInfo(
-                songName: "测试歌曲2",
-                songId: "345678",
-                matchSongId: "901234",
-                message: "匹配失败",
-                status: .error
-            )
-        ])
+        LogView(
+            logs: [
+                LogInfo(
+                    songName: "测试歌曲",
+                    songId: "123456",
+                    matchSongId: "789012",
+                    message: "",
+                    status: .success
+                ),
+                LogInfo(
+                    songName: "测试歌曲2",
+                    songId: "345678",
+                    matchSongId: "901234",
+                    message: "匹配失败",
+                    status: .error
+                )
+            ],
+            onClear: {}  // 添加空的清除回调
+        )
         .frame(height: 200)
     }
 } 
