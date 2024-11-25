@@ -3,6 +3,7 @@ import SwiftUI
 struct LogView: View {
     let logs: [LogInfo]
     let onClear: () -> Void  // 添加清除回调
+    @State private var isHovering = false
     
     var body: some View {
         ScrollViewReader { proxy in
@@ -44,11 +45,18 @@ struct LogView: View {
                 VStack {
                     Button(action: onClear) {
                         Image(systemName: "trash")
-                            .foregroundColor(.gray)
-                            .font(.system(size: 14))
+                            .font(.system(size: 12))
                     }
                     .buttonStyle(.plain)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 4)
+                    .background(
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(isHovering ?.secondary.opacity(0.1) : Color.clear)
+                    )
+                    .onHover { hovering in
+                        isHovering = hovering
+                    }
                     
                     Spacer()
                 }
