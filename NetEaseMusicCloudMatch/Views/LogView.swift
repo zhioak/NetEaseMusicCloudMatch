@@ -35,6 +35,11 @@ struct LogView: View {
                 .scrollIndicators(.visible)
                 .padding(.bottom, 4)
                 
+                // 添加分割线
+                Rectangle()
+                    .fill(Color.secondary.opacity(0.2))
+                    .frame(width: 1)
+                
                 // 工具栏列
                 VStack {
                     Button(action: onClear) {
@@ -95,6 +100,7 @@ struct LogInfoRow: View {
                 .font(.system(size: 10))
                 .foregroundColor(.secondary)
                 .frame(width: 60, alignment: .trailing) // 固定宽度
+                .padding(.trailing, 4) // 为滚动条预留空间
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
