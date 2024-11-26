@@ -13,6 +13,11 @@ struct HeaderView: View {
         return String(format: "%.1fG", gb)
     }
     
+    private var usagePercentage: Double {
+        guard songManager.maxSize > 0 else { return 0 }
+        return Double(songManager.usedSize) / Double(songManager.maxSize)
+    }
+    
     var body: some View {
         HStack {
             // 用户信息区域：头像和用户名
@@ -48,11 +53,35 @@ struct HeaderView: View {
             
             Spacer()
             
-            // 添加容量信息
+            // 添加容量信息和进度条
             if songManager.maxSize > 0 {
-                Text("\(formatSize(songManager.usedSize))/\(formatSize(songManager.maxSize))")
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+                HStack(spacing: 8) {
+                    // 添加标题文字
+                    Text("云盘容量")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                    
+                    // 进度条
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            // 背景条
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(Color.secondary.opacity(0.2))
+                                .frame(height: 4)
+                            
+                            // 进度条
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(Color.blue.opacity(0.8))
+                                .frame(width: geometry.size.width * usagePercentage, height: 4)
+                        }
+                    }
+                    .frame(width: 120, height: 4)
+                    
+                    // 容量文字
+                    Text("\(formatSize(songManager.usedSize)) / \(formatSize(songManager.maxSize))")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
             }
             
             Spacer()
