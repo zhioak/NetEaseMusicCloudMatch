@@ -8,7 +8,7 @@ struct ContentView: View {
     @StateObject private var songManager = SongManager.shared
     @StateObject private var userManager = UserManager.shared
     @State private var currentPage = 1  // 添加页码状态
-    @State private var pageSize = 1  // 添加页面大小状态
+    @State private var pageSize = 200  // 添加页面大小状态
     
     var body: some View {
         // 使用GeometryReader来获取可用空间尺寸，实现响应式布局
