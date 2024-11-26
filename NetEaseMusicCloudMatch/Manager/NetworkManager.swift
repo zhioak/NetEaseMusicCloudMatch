@@ -4,7 +4,7 @@ class NetworkManager {
     static let shared = NetworkManager()
     
     // 添加调试开关
-    static var isDebugMode = false
+    static var isDebugMode = true
     
     private init() {}
     

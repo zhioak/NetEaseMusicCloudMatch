@@ -10,7 +10,7 @@ enum LogStatus {
 struct LogInfo: Identifiable {
     let id = UUID()
     let songName: String      // 歌曲名
-    let songId: String        // 歌曲ID（原cloudSongId）
+    let songId: String        // 歌曲ID
     let matchSongId: String   // 匹配目标ID
     let message: String       // 其他信息
     let status: LogStatus     // 状态

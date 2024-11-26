@@ -8,6 +8,7 @@ struct ContentView: View {
     @StateObject private var songManager = SongManager.shared
     @StateObject private var userManager = UserManager.shared
     @State private var currentPage = 1  // 添加页码状态
+    @State private var pageSize = 1  // 添加页面大小状态
     
     var body: some View {
         // 使用GeometryReader来获取可用空间尺寸，实现响应式布局
@@ -29,7 +30,8 @@ struct ContentView: View {
                         HeaderView(
                             loginManager: loginManager, 
                             searchText: $searchText,
-                            currentPage: $currentPage  // 传递 currentPage binding
+                            currentPage: $currentPage,
+                            pageSize: $pageSize  // 传递 pageSize
                         )
                         
                         // 音乐列表视图 - 使用双向绑定确保数据同步
@@ -39,7 +41,8 @@ struct ContentView: View {
                                 set: { self.songManager.cloudSongs = $0 }
                             ),
                             searchText: $searchText,
-                            currentPage: $currentPage  // 传递 currentPage binding
+                            currentPage: $currentPage,
+                            pageSize: $pageSize  // 传递 pageSize
                         )
                         .frame(maxWidth: .infinity)
                         .frame(height: geometry.size.height * 0.65) // 将表格高度调整为窗口高度的65%
@@ -57,7 +60,7 @@ struct ContentView: View {
                                     songManager.matchLogs.removeAll()
                                 }
                             )
-                                .frame(maxWidth: .infinity)
+                            .frame(maxWidth: .infinity)
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -73,9 +76,9 @@ struct ContentView: View {
             if !userManager.isLoggedIn {
                 loginManager.startLoginProcess()
             }
-            // 只在已登录状态下获取一次歌曲列表
+            // 只在已登录状态下获取一次歌曲列表，使用 SongListView 的 pageSize
             else if songManager.cloudSongs.isEmpty {
-                songManager.fetchPage()
+                songManager.fetchPage(page: currentPage, limit: pageSize)
             }
         }
     }

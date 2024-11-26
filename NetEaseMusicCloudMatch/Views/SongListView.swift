@@ -3,20 +3,19 @@ import SwiftUI
 struct SongListView: View {
     @Binding var songs: [Song]
     @Binding var searchText: String
-    @StateObject private var songManager = SongManager.shared
+    @Binding var currentPage: Int
+    @Binding var pageSize: Int
     
     // 状态管理
     @State private var sortOrder = [KeyPathComparator(\Song.addTime, order: .reverse)]
     @State private var editingId: String?
     @State private var tempEditId: String = ""
     @State private var selection: Set<String> = []
-    @Binding var currentPage: Int
-    private let itemsPerPage = 200
     
     // 计算总页数
     private var totalPages: Int {
-        let total = songManager.totalSongCount
-        return max(1, Int(ceil(Double(total) / Double(itemsPerPage))))
+        let total = SongManager.shared.totalSongCount
+        return max(1, Int(ceil(Double(total) / Double(pageSize))))
     }
     
     // 过滤后的歌曲列表
@@ -54,7 +53,7 @@ struct SongListView: View {
                                 songs: $songs,
                                 editingId: $editingId,
                                 selection: $selection,
-                                performMatch: songManager.performMatch,
+                                performMatch: SongManager.shared.performMatch,
                                 onTab: selectNextRow,
                                 onShiftTab: selectPreviousRow
                             )
@@ -131,7 +130,7 @@ struct SongListView: View {
                     totalPages: totalPages,
                     onPageChange: { page in
                         currentPage = page
-                        songManager.fetchPage(page: page, limit: itemsPerPage)
+                        loadPage(page)
                     }
                 )
                 Spacer()
@@ -224,7 +223,7 @@ struct SongListView: View {
                 pasteboard.setString(textToCopy, forType: .string)
                 
                 // 添加复制成功的日志
-                songManager.matchLogs.append(LogInfo(
+                SongManager.shared.matchLogs.append(LogInfo(
                     songName: song.name,
                     songId: song.id,
                     matchSongId: "",
@@ -233,6 +232,10 @@ struct SongListView: View {
                 ))
             }
         }
+    }
+    
+    private func loadPage(_ page: Int) {
+        SongManager.shared.fetchPage(page: page, limit: pageSize)
     }
 }
 
@@ -489,7 +492,8 @@ private struct PaginationButtonStyle: ButtonStyle {
     return SongListView(
         songs: .constant(mockSongs),
         searchText: .constant(""),
-        currentPage: .constant(1)
+        currentPage: .constant(1),
+        pageSize: .constant(200)
     )
     .frame(height: 400)
 }
@@ -538,7 +542,8 @@ private struct PaginationButtonStyle: ButtonStyle {
     return SongListView(
         songs: .constant(mockSongs),
         searchText: .constant("周杰伦"),
-        currentPage: .constant(1)
+        currentPage: .constant(1),
+        pageSize: .constant(200)
     )
     .frame(height: 400)
 } 

@@ -5,6 +5,7 @@ struct HeaderView: View {
     @ObservedObject private var userManager = UserManager.shared
     @Binding var searchText: String
     @Binding var currentPage: Int
+    @Binding var pageSize: Int
     @StateObject private var songManager = SongManager.shared
     
     var body: some View {
@@ -56,8 +57,7 @@ struct HeaderView: View {
             
             // 刷新按钮 - 用于重新加载云盘音乐
             Button(action: {
-                currentPage = 1
-                songManager.fetchPage(page: 1)
+                refreshData()
             }) {
                 Image(systemName: "arrow.clockwise")
                     .foregroundColor(.blue)
@@ -69,12 +69,18 @@ struct HeaderView: View {
         .padding(.horizontal)
         .padding(.vertical, 8)
     }
+    
+    private func refreshData() {
+        currentPage = 1
+        SongManager.shared.fetchPage(page: currentPage, limit: pageSize)
+    }
 }
 
 #Preview {
     HeaderView(
         loginManager: LoginManager.shared,
         searchText: .constant(""),
-        currentPage: .constant(1)
+        currentPage: .constant(1),
+        pageSize: .constant(1)
     )
 } 
