@@ -9,6 +9,8 @@ class SongManager: ObservableObject {
     @Published var cloudSongs: [Song] = []
     @Published var isLoadingCloudSongs = false
     @Published private(set) var totalSongCount: Int = -1
+    @Published private(set) var usedSize: Int64 = 0
+    @Published private(set) var maxSize: Int64 = 0
     
     // 添加一个标志位来防止重复请求
     private var isFetching = false
@@ -31,7 +33,6 @@ class SongManager: ObservableObject {
             return
         }
         
-        print("开始获取第 \(page) 页云盘歌曲")
         isFetching = true
         isLoadingCloudSongs = true
         
@@ -56,15 +57,22 @@ class SongManager: ObservableObject {
             }
             
             switch result {
-            case .success(let (json, _)):  // 解构元组，获取 json 数据
+            case .success(let (json, _)):
                 if let code = json["code"] as? Int, code == 200,
                    let data = json["data"] as? [[String: Any]] {
-                    // 只在首次加载（totalSongCount == -1）时更新总数
-                    if self.totalSongCount == -1,
-                       let count = json["count"] as? Int {
-                        DispatchQueue.main.async {
-                            self.totalSongCount = count
-                            print("首次加载，更新总数: \(count)")
+                    
+                    if self.totalSongCount == -1 {
+                        if let count = json["count"] as? Int {
+                            let sizeStr = String(describing: json["size"] ?? "0")
+                            let maxSizeStr = String(describing: json["maxSize"] ?? "0")
+                            let size = Int64(sizeStr) ?? 0
+                            let maxSize = Int64(maxSizeStr) ?? 0
+                            
+                            DispatchQueue.main.async {
+                                self.totalSongCount = count
+                                self.usedSize = size
+                                self.maxSize = maxSize
+                            }
                         }
                     }
                     

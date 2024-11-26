@@ -8,6 +8,11 @@ struct HeaderView: View {
     @Binding var pageSize: Int
     @StateObject private var songManager = SongManager.shared
     
+    private func formatSize(_ bytes: Int64) -> String {
+        let gb = Double(bytes) / 1024 / 1024 / 1024
+        return String(format: "%.1fG", gb)
+    }
+    
     var body: some View {
         HStack {
             // 用户信息区域：头像和用户名
@@ -39,6 +44,15 @@ struct HeaderView: View {
                     .foregroundColor(.blue)
                     .font(.caption)
                 }
+            }
+            
+            Spacer()
+            
+            // 添加容量信息
+            if songManager.maxSize > 0 {
+                Text("\(formatSize(songManager.usedSize))/\(formatSize(songManager.maxSize))")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
             }
             
             Spacer()
