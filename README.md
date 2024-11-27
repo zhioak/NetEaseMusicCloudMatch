@@ -4,16 +4,11 @@
 
 <h1 align="center">NetEaseMusicCloudMatch</h1>
 
-<p align="center">
-<a href="https://github.com/wuhenge/NeteaseMusicCloudMatch">wuhenge/NeteaseMusicCloudMatch</a> 的 Mac 版本。</p>
-
----
-
-[wuhenge/NeteaseMusicCloudMatch](https://github.com/wuhenge/NeteaseMusicCloudMatch)使用的C#开发，只支持Windows系统，所以按照原逻辑编写了一套Swift版本以支持Mac系统。
+[wuhenge/NeteaseMusicCloudMatch](https://github.com/wuhenge/NeteaseMusicCloudMatch)使用的C#开发，只支持Windows系统，所以按原逻辑编写了一套Swift版本以支持MacOS。
 
 ### 上手指南
 
-打开网易云音乐扫码登录
+进入[Releases页面](https://github.com/zhiozhou/NetEaseMusicCloudMatch/releases)下载最新版本并安装，打开NetEaseMusicCloudMatch后使用网易云音乐App扫码登录
 
 ![Preview](https://raw.githubusercontent.com/zhiozhou/pics/master/picgo/2024-11%2FNetEaseMusicCloudMatch-login-c6b0ad.png)
 
