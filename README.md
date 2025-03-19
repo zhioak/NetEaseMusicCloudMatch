@@ -30,6 +30,10 @@
 
 ![Preview](https://raw.githubusercontent.com/zhiozhou/pics/master/picgo/2024-11%2FNetEaseMusicCloudMatch-step-3-ad85fc.png)
 
+### License
+
+[MIT](https://github.com/zhioak/NetEaseMusicCloudMatch/blob/main/LICENSE)
+
 ### 特别鸣谢
 
 - [wuhenge/NeteaseMusicCloudMatch](https://github.com/wuhenge/NeteaseMusicCloudMatch)
