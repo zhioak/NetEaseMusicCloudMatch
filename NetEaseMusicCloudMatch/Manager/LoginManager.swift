@@ -177,6 +177,8 @@ class LoginManager: ObservableObject {
             userManager.updateUserInfo(from: profile, token: cookie)
             qrCodeStatus = .success
             print("Cookie登录成功")
+            // 登录成功后立刻拉取歌曲
+            SongManager.shared.fetchPage(page: 1, limit: 200)
         } else {
             qrCodeStatus = .failed("无法获取用户信息，请检查Cookie是否有效")
             print("Cookie登录失败：无法获取用户信息")

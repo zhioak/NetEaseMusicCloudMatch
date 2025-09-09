@@ -41,7 +41,9 @@ struct LoginView: View {
                 .background(cookieText.isEmpty ? Color.gray : Color.blue)
                 .foregroundColor(.white)
                 .cornerRadius(8)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(PlainButtonStyle())
             .disabled(cookieText.isEmpty || isLoggingIn)
             .padding(.horizontal)
             
