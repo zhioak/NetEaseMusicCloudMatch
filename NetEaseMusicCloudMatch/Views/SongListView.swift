@@ -11,6 +11,7 @@ struct SongListView: View {
     @State private var editingId: String?
     @State private var tempEditId: String = ""
     @State private var selection: Set<String> = []
+    @ObservedObject private var songManagerObserved = SongManager.shared
     
     // 计算总页数
     private var totalPages: Int {
@@ -32,110 +33,122 @@ struct SongListView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            // 表格视图
-            Table(filteredSongs, selection: $selection, sortOrder: $sortOrder) {
-                // 序号列
-                TableColumn("#", value: \.id) { song in
-                    Text(String(format: "%02d", filteredSongs.firstIndex(where: { $0.id == song.id })! + 1))
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-                }
-                .width(20)
+        ZStack {
+            VStack(spacing: 0) {
+                // 表格视图
+                Table(filteredSongs, selection: $selection, sortOrder: $sortOrder) {
+                    // 序号列
+                    TableColumn("#", value: \.id) { song in
+                        Text(String(format: "%02d", filteredSongs.firstIndex(where: { $0.id == song.id })! + 1))
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    }
+                    .width(20)
 
-                // 可编辑的歌曲ID列
-                TableColumn("歌曲ID", value: \.id) { song in
-                    ZStack {
-                        if editingId == song.id {
-                            EditableTextField(
-                                text: $tempEditId,
-                                song: song,
-                                songs: $songs,
-                                editingId: $editingId,
-                                selection: $selection,
-                                performMatch: SongManager.shared.performMatch,
-                                onTab: selectNextRow,
-                                onShiftTab: selectPreviousRow
-                            )
-                        } else {
-                            Text(song.id)
-                                .font(.system(size: 12))
-                                .foregroundColor(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    withAnimation {
-                                        selection = [song.id]
-                                        startEditing(songId: song.id)
+                    // 可编辑的歌曲ID列
+                    TableColumn("歌曲ID", value: \.id) { song in
+                        ZStack {
+                            if editingId == song.id {
+                                EditableTextField(
+                                    text: $tempEditId,
+                                    song: song,
+                                    songs: $songs,
+                                    editingId: $editingId,
+                                    selection: $selection,
+                                    performMatch: SongManager.shared.performMatch,
+                                    onTab: selectNextRow,
+                                    onShiftTab: selectPreviousRow
+                                )
+                            } else {
+                                Text(song.id)
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        withAnimation {
+                                            selection = [song.id]
+                                            startEditing(songId: song.id)
+                                        }
                                     }
-                                }
+                            }
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                    .width(min: 50, ideal: 50)
+
+                    // 歌曲信息列
+                    TableColumn("歌曲信息", value: \.name) { song in
+                        HStack(spacing: 10) {
+                            CachedAsyncImage(url: URL(string: song.picUrl))
+                                .frame(width: 30, height: 30)
+                                .cornerRadius(4)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(song.name)
+                                    .font(.system(size: 12))
+                                    .lineLimit(1)
+                                Text(song.artist)
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                            }
                         }
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-                .width(min: 50, ideal: 50)
+                    .width(min: 140, ideal: 140)
 
-                // 歌曲信息列
-                TableColumn("歌曲信息", value: \.name) { song in
-                    HStack(spacing: 10) {
-                        CachedAsyncImage(url: URL(string: song.picUrl))
-                            .frame(width: 30, height: 30)
-                            .cornerRadius(4)
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(song.name)
-                                .font(.system(size: 12))
-                                .lineLimit(1)
-                            Text(song.artist)
-                                .font(.system(size: 10))
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
-                        }
+                    // 专辑列
+                    TableColumn("专辑", value: \.album) { song in
+                        Text(song.album)
+                            .font(.system(size: 12))
+                            .lineLimit(1)
                     }
-                }
-                .width(min: 140, ideal: 140)
+                    .width(min: 100, ideal: 100)
 
-                // 专辑列
-                TableColumn("专辑", value: \.album) { song in
-                    Text(song.album)
-                        .font(.system(size: 12))
-                        .lineLimit(1)
-                }
-                .width(min: 100, ideal: 100)
+                    // 上传时间列
+                    TableColumn("上传时间", value: \.addTime) { song in
+                        Text(formatDate(song.addTime))
+                    }
+                    .width(min: 80, ideal: 80)
 
-                // 上传时间列
-                TableColumn("上传时间", value: \.addTime) { song in
-                    Text(formatDate(song.addTime))
-                }
-                .width(min: 80, ideal: 80)
+                    // 文件大小列
+                    TableColumn("文件大小", value: \.fileSize) { song in
+                        Text(formatFileSize(song.fileSize))
+                    }
+                    .width(min: 40, ideal: 40)
 
-                // 文件大小列
-                TableColumn("文件大小", value: \.fileSize) { song in
-                    Text(formatFileSize(song.fileSize))
+                    // 时长列
+                    TableColumn("时长", value: \.duration) { song in
+                        Text(formatDuration(song.duration))
+                    }
+                    .width(min: 20, ideal: 20)
                 }
-                .width(min: 40, ideal: 40)
-
-                // 时长列
-                TableColumn("时长", value: \.duration) { song in
-                    Text(formatDuration(song.duration))
+                
+                // 分页控制器
+                HStack {
+                    Spacer()
+                    PaginationControl(
+                        currentPage: currentPage,
+                        totalPages: totalPages,
+                        onPageChange: { page in
+                            currentPage = page
+                            loadPage(page)
+                        }
+                    )
+                    Spacer()
                 }
-                .width(min: 20, ideal: 20)
             }
             
-            // 分页控制器
-            HStack {
-                Spacer()
-                PaginationControl(
-                    currentPage: currentPage,
-                    totalPages: totalPages,
-                    onPageChange: { page in
-                        currentPage = page
-                        loadPage(page)
-                    }
-                )
-                Spacer()
+            if songManagerObserved.isLoadingCloudSongs {
+                // 灰度遮罩覆盖整个歌曲表格区域，并阻止交互
+                Color.black.opacity(0.2)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(true)
+                ProgressView()
+                    .scaleEffect(0.8)
             }
         }
+        .disabled(songManagerObserved.isLoadingCloudSongs)
         .onChange(of: sortOrder) { _, newValue in
             withAnimation {
                 songs.sort { lhs, rhs in
