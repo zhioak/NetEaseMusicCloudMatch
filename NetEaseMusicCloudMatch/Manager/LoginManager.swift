@@ -76,14 +76,14 @@ class LoginManager: ObservableObject {
         print("开始登录流程")
         qrCodeStatus = .loading
         
-        Task {
-            if let unikey = await getQRCodeKey(),
-               let qrImage = generateQRCode(unikey: unikey) {
-                qrCodeImage = qrImage
-                qrCodeStatus = .ready
-                startPolling(unikey: unikey)
-            }
-        }
+        // Task {
+        //     if let unikey = await getQRCodeKey(),
+        //        let qrImage = generateQRCode(unikey: unikey) {
+        //         qrCodeImage = qrImage
+        //         qrCodeStatus = .ready
+        //         startPolling(unikey: unikey)
+        //     }
+        // }
     }
     
     // 获取登录二维码的key，直接返回 unikey
@@ -287,5 +287,32 @@ class LoginManager: ObservableObject {
     // 添加获取 userToken 的方法
     func getUserToken() -> String? {
         return userToken
+    }
+    
+    // MARK: - Cookie登录方法
+    @MainActor
+    func loginWithCookie(_ cookie: String) async {
+        if userManager.isLoggedIn {
+            print("用户已登录")
+            return
+        }
+        
+        print("开始Cookie登录流程")
+        qrCodeStatus = .loading
+        
+        // 先设置cookie到UserManager，这样NetworkManager就能获取到token
+        self.userToken = cookie
+        userManager.setTemporaryToken(cookie)
+        
+        if let profile = await getUserInfo() {
+            userManager.updateUserInfo(from: profile, token: cookie)
+            qrCodeStatus = .success
+            print("Cookie登录成功")
+        } else {
+            qrCodeStatus = .failed("无法获取用户信息，请检查Cookie是否有效")
+            print("Cookie登录失败：无法获取用户信息")
+            // 如果获取用户信息失败，清除临时信息
+            userManager.clearUserInfo()
+        }
     }
 }

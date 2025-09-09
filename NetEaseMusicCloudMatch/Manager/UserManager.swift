@@ -94,4 +94,16 @@ class UserManager: ObservableObject {
     func getToken() -> String? {
         return userInfo?.token
     }
+    
+    // 临时设置token用于登录验证
+    func setTemporaryToken(_ token: String) {
+        let tempUserInfo = UserInfo(
+            username: "临时用户",
+            userId: "0",
+            avatarURL: nil,
+            token: token,
+            loginTime: Date()
+        )
+        self.userInfo = tempUserInfo
+    }
 } 

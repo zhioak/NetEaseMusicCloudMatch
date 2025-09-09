@@ -2,45 +2,77 @@ import SwiftUI
 
 struct LoginView: View {
     @ObservedObject var loginManager: LoginManager  // 登录管理器
+    @State private var cookieText: String = ""  // Cookie输入框的文本
+    @State private var isLoggingIn: Bool = false  // 是否正在登录
     
     var body: some View {
-        VStack {
-            // 登录提示文本
-            Text("请使用网易音乐 App 扫描二维码登录")
-                .padding()
+        VStack(spacing: 20) {
             
-            // 二维码显示区域
-            ZStack {
-                // 显示二维码图片或加载提示
-                if let image = loginManager.qrCodeImage {
-                    Image(nsImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 200, height: 200)
-                        // 二维码过期时降低透明度
-                        .opacity(loginManager.qrCodeStatus == .expired ? 0.5 : 1)
-                } else {
-                    Text("加载二维码中...")
-                }
-                
-                // 二维码过期时显示的遮罩层
-                if loginManager.qrCodeStatus == .expired {
-                    Text("二维码已过期")
-                        .frame(width: 200, height: 200)
-                        .background(Color.black.opacity(0.6))
-                }
+            // Cookie输入框
+            VStack(alignment: .leading, spacing: 8) {
+                TextEditor(text: $cookieText)
+                    .frame(minHeight: 120, maxHeight: 200)
+                    .padding(8)
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color(NSColor.separatorColor), lineWidth: 1)
+                    )
+                    .font(.system(.body, design: .monospaced))
             }
-            .frame(width: 200, height: 200)
-            // 点击过期的二维码时重新获取
-            .onTapGesture {
-                if loginManager.qrCodeStatus == .expired {
-                    loginManager.startLoginProcess()
+            .padding(.horizontal)
+            
+            // 登录按钮
+            Button(action: {
+                loginWithCookie()
+            }) {
+                HStack {
+                    if isLoggingIn {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    }
+                    Text(isLoggingIn ? "登录中..." : "登录")
+                        .fontWeight(.medium)
                 }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(cookieText.isEmpty ? Color.gray : Color.blue)
+                .foregroundColor(.white)
+                .cornerRadius(8)
             }
+            .disabled(cookieText.isEmpty || isLoggingIn)
+            .padding(.horizontal)
+            
+            // 状态提示
+            if case .failed(let error) = loginManager.qrCodeStatus {
+                Text("登录失败: \(error)")
+                    .foregroundColor(.red)
+                    .font(.caption)
+                    .padding(.horizontal)
+            } else if case .success = loginManager.qrCodeStatus {
+                Text("登录成功!")
+                    .foregroundColor(.green)
+                    .font(.caption)
+                    .padding(.horizontal)
+            }
+            
+            Spacer()
         }
-        // 视图出现时自动开始登录流程
-        .onAppear {
-            loginManager.startLoginProcess()
+        .frame(maxWidth: 500)
+        .padding()
+    }
+    
+    private func loginWithCookie() {
+        guard !cookieText.isEmpty else { return }
+        
+        isLoggingIn = true
+        Task {
+            await loginManager.loginWithCookie(cookieText)
+            await MainActor.run {
+                isLoggingIn = false
+            }
         }
     }
 }

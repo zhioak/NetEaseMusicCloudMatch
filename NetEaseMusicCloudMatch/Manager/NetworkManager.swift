@@ -43,6 +43,14 @@ class NetworkManager {
         // 设置默认 headers
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         
+        // 自动添加用户cookie
+        if let userToken = UserManager.shared.getToken(), !userToken.isEmpty {
+            request.setValue(userToken, forHTTPHeaderField: "Cookie")
+            if NetworkManager.isDebugMode {
+                print("Added Cookie to request: \(userToken)")
+            }
+        }
+        
         // 添加自定义 headers
         headers?.forEach { key, value in
             request.setValue(value, forHTTPHeaderField: key)
