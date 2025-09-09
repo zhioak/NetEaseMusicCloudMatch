@@ -6,6 +6,9 @@ struct SongListView: View {
     @Binding var currentPage: Int
     @Binding var pageSize: Int
     
+    // 分页区域的总高度（按钮高度 28 + 上下内边距 8*2）
+    private let paginationTotalHeight: CGFloat = 44
+    
     // 状态管理
     @State private var sortOrder = [KeyPathComparator(\Song.addTime, order: .reverse)]
     @State private var editingId: String?
@@ -146,6 +149,7 @@ struct SongListView: View {
                     .allowsHitTesting(true)
                 ProgressView()
                     .scaleEffect(0.8)
+                    .offset(y: -paginationTotalHeight / 2)
             }
         }
         .disabled(songManagerObserved.isLoadingCloudSongs)
