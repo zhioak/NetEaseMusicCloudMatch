@@ -69,8 +69,8 @@ struct ContentView: View {
         }
         // 调整未登录状态下的窗口尺寸为 260x400
         .frame(
-            minWidth: userManager.isLoggedIn ? 800 : 120,
-            minHeight: userManager.isLoggedIn ? 500 : 150
+            minWidth: userManager.isLoggedIn ? 800 : 240,
+            minHeight: userManager.isLoggedIn ? 500 : 240
         )
         .task {
             if !userManager.isLoggedIn {

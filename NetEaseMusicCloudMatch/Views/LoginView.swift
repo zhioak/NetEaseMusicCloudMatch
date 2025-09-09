@@ -79,7 +79,7 @@ struct LoginView: View {
             
             Spacer()
         }
-        .frame(maxWidth: 500)
+        .frame(maxWidth: 600)
         .padding()
     }
     
