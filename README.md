@@ -8,11 +8,23 @@
 
 ### 上手指南
 
-进入[Releases页面](https://github.com/zhiozhou/NetEaseMusicCloudMatch/releases)下载最新版本并安装，打开NetEaseMusicCloudMatch后使用网易云音乐App扫码登录
+进入[Releases页面](https://github.com/zhiozhou/NetEaseMusicCloudMatch/releases)下载最新版本并安装，打开NetEaseMusicCloudMatch
 
-![Preview](https://raw.githubusercontent.com/zhiozhou/pics/master/picgo/2024-11%2FNetEaseMusicCloudMatch-login-c6b0ad.png)
+![Preview](https://raw.githubusercontent.com/zhioak/pics/master/picgo/2025-09%2FiShot_2025-09-09_16.43.44-625179.png)
 
-登录完成后展示云盘信息
+点击蓝色链接跳转网易云音乐网页版，按F12打开浏览器控制台，切换到Network（网络）后，进行登录
+
+![Preview](https://raw.githubusercontent.com/zhioak/pics/master/picgo/2025-09%2FiShot_2025-09-09_16.28.37-dbdacf.png)
+
+登录成功后的请求都会携带登录Cookie，复制Cookie
+
+![Preview](https://raw.githubusercontent.com/zhioak/pics/master/picgo/2025-09%2FiShot_2025-09-09_16.30.21-27ba8c.png)
+
+将Cookie粘贴到输入框，点击`Cookie登录`
+
+![Preview](https://raw.githubusercontent.com/zhioak/pics/master/picgo/2025-09%2FiShot_2025-09-09_16.43.54-79260a.png)
+
+Cookie登录完成后展示云盘信息
 
 ![Preview](https://raw.githubusercontent.com/zhiozhou/pics/master/picgo/2024-11%2FNetEaseMusicCloudMatch-step-1-a6b946.png)
 
