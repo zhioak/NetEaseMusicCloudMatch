@@ -108,6 +108,7 @@ struct HeaderView: View {
             }
             .buttonStyle(PlainButtonStyle())
             .padding(.leading, 10)
+            .focusable(false)
         }
         .padding(.horizontal)
         .padding(.vertical, 8)

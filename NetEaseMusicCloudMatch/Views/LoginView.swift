@@ -10,8 +10,25 @@ struct LoginView: View {
             
             // Cookie输入框
             VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Link("前往网易云音乐网页版，复制你的Cookie后粘贴到下方输入框", destination: URL(string: "https://music.163.com/")!)
+                        .font(.subheadline)
+                        .foregroundColor(.blue) // 超链接样式，颜色可调整
+                        .underline() // 可选：加下划线，突出超链接感
+                    Spacer()
+                    Button(action: {
+                        if let url = URL(string: "https://github.com/zhioak/NetEaseMusicCloudMatch") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }) {
+                        Image(systemName: "questionmark.circle")
+                            .foregroundColor(.blue)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .focusable(false)
+                }
                 TextEditor(text: $cookieText)
-                    .frame(minHeight: 120, maxHeight: 200)
+                    .frame(minHeight: 120, maxHeight: 150)
                     .padding(8)
                     .background(Color(NSColor.controlBackgroundColor))
                     .cornerRadius(8)
