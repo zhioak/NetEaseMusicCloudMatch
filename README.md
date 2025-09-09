@@ -16,7 +16,7 @@
 
 ![Preview](https://raw.githubusercontent.com/zhioak/pics/master/picgo/2025-09%2FiShot_2025-09-09_16.28.37-dbdacf.png)
 
-登录成功后的请求都会携带登录Cookie，复制Cookie
+登录成功后的网络请求都会携带登录Cookie，随便选一个登录后的网络请求，复制请求头的Cookie
 
 ![Preview](https://raw.githubusercontent.com/zhioak/pics/master/picgo/2025-09%2FiShot_2025-09-09_16.30.21-27ba8c.png)
 
