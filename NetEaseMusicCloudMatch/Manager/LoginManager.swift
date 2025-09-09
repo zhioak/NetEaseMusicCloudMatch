@@ -69,10 +69,10 @@ class LoginManager: ObservableObject {
             print("用户已登录")
             return
         }
-        if isGettingQRCode {
-            print("正在获取二维码，请稍候")
-            return
-        }
+        // if isGettingQRCode {
+        //     print("正在获取二维码，请稍候")
+        //     return
+        // }
         print("开始登录流程")
         qrCodeStatus = .loading
         
@@ -116,138 +116,7 @@ class LoginManager: ObservableObject {
             return nil
         }
     }
-    
-    // 修改 generateQRCode 方法，只负责生成二维码图片
-    private func generateQRCode(unikey: String) -> NSImage? {
-        print("正在生成二维码")
-        let qrCodeUrl = "https://music.163.com/login?codekey=\(unikey)"
-        
-        // 将字符串转换为ASCII编码数据
-        guard let data = qrCodeUrl.data(using: .ascii),
-              let filter = CIFilter(name: "CIQRCodeGenerator") else {
-            print("创建二维码数据或过滤器失败")
-            return nil
-        }
-        
-        // 设置二维码内容
-        filter.setValue(data, forKey: "inputMessage")
-        
-        // 放大二维码图像，提高清晰度
-        let transform = CGAffineTransform(scaleX: 10, y: 10)
-        
-        guard let output = filter.outputImage?.transformed(by: transform) else {
-            print("生成二维码图像失败")
-            return nil
-        }
-        
-        // 转换为NSImage
-        let rep = NSCIImageRep(ciImage: output)
-        let nsImage = NSImage(size: rep.size)
-        nsImage.addRepresentation(rep)
-        
-        print("二维码生成成功")
-        return nsImage
-    }
-    
-    // 开始轮询查登录状态
-    private func startPolling(unikey: String) {
-        print("开始轮询登录状态")
-        // 先停止现有的轮询
-        stopPolling()
-        // 创建新的轮询
-        timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
-            self?.pollLoginStatus(unikey: unikey)
-        }
-    }
-    
-    // 轮询登录状态
-    private func pollLoginStatus(unikey: String) {
-        guard !userManager.isLoggedIn else {
-            stopPolling()
-            return
-        }
-        
-        Task { @MainActor in
-            let status = await getQRCodeLoginStatus(unikey: unikey)
-            
-            switch status {
-            case .success:
-                print("登录成功")
-                stopPolling()
-                qrCodeStatus = .success
-                if let profile = await getUserInfo() {
-                    userManager.updateUserInfo(from: profile)
-                }
-            case .expired:
-                if !userManager.isLoggedIn {
-                    print("二维码过期")
-                    qrCodeStatus = .expired
-                    stopPolling()
-                }
-            case .ready:
-                if !userManager.isLoggedIn {
-                    print("未登录，继续等待")
-                }
-            case .failed(let error):
-                qrCodeStatus = .failed(error)
-                print("登录失败: \(error)")
-            case .loading:
-                break
-            }
-        }
-    }
-    
-    // 检查二维码登录状态
-    private func getQRCodeLoginStatus(unikey: String) async -> QRCodeStatus {
-        do {
-            let result = try await withCheckedThrowingContinuation { continuation in
-                networkManager.post(
-                    endpoint: "https://music.163.com/api/login/qrcode/client/login",
-                    parameters: ["key": unikey, "type": 1]
-                ) { result in
-                    continuation.resume(with: result)
-                }
-            }
-            
-            let (json, response) = result
-            
-            if let code = json["code"] as? Int {
-                switch code {
-                case 803:
-                    // 获取并保存 cookie
-                    if let cookie = response.allHeaderFields["Set-Cookie"] as? String {
-                        self.userToken = cookie
-                        // 更新到 UserManager
-                        if let profile = await getUserInfo() {
-                            await MainActor.run {
-                                userManager.updateUserInfo(from: profile, token: cookie)
-                            }
-                        }
-                        print("成功保存用户 Cookie")
-                    }
-                    return .success
-                case 800: return .expired
-                case 801: return .ready
-                default:
-                    let message = json["message"] as? String ?? "未知错误"
-                    return .failed(message)
-                }
-            }
-            return .failed("无效的响应数据")
-            
-        } catch {
-            return .failed(error.localizedDescription)
-        }
-    }
-    
-    // 停止登录状态轮询
-    private func stopPolling() {
-        if let timer = timer {
-            timer.invalidate()
-            self.timer = nil
-            print("停止轮询")
-        }
-    }
+
     
     // 获取用户信息，只负责获取数据
     private func getUserInfo() async -> [String: Any]? {
@@ -277,9 +146,9 @@ class LoginManager: ObservableObject {
     // 退出登录
     @MainActor
     func logout() async {
-        stopPolling()  // 确保在退出登录时停止轮询
         userToken = nil  // 现在可以正确地设置为 nil
         userManager.clearUserInfo()
+        SongManager.shared.clearCloudData()
         qrCodeStatus = .loading
         startLoginProcess()
     }

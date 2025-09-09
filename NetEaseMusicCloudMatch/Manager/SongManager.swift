@@ -41,7 +41,7 @@ class SongManager: ObservableObject {
             "limit": limit,
             "offset": offset
         ]
-        
+        print("开始拉取云盘歌曲")
         networkManager.post(
             endpoint: "https://music.163.com/api/v1/cloud/get",
             parameters: parameters
@@ -170,6 +170,19 @@ class SongManager: ObservableObject {
                 
                 completion(success, message)
             }
+        }
+    }
+    
+    // 清空云盘歌曲及相关状态
+    func clearCloudData() {
+        DispatchQueue.main.async {
+            self.cloudSongs = []
+            self.totalSongCount = -1
+            self.usedSize = 0
+            self.maxSize = 0
+            self.isLoadingCloudSongs = false
+            self.isFetching = false
+            self.matchLogs.removeAll()
         }
     }
 } 
