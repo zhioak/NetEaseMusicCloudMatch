@@ -50,7 +50,7 @@ struct LoginView: View {
                             .scaleEffect(0.8)
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     }
-                    Text(isLoggingIn ? "登录中..." : "登录")
+                    Text(isLoggingIn ? "Cookie登录中..." : "Cookie登录")
                         .fontWeight(.medium)
                 }
                 .frame(maxWidth: .infinity)
@@ -66,12 +66,12 @@ struct LoginView: View {
             
             // 状态提示
             if case .failed(let error) = loginManager.qrCodeStatus {
-                Text("登录失败: \(error)")
+                Text("Cookie登录失败: \(error)")
                     .foregroundColor(.red)
                     .font(.caption)
                     .padding(.horizontal)
             } else if case .success = loginManager.qrCodeStatus {
-                Text("登录成功!")
+                Text("Cookie登录成功")
                     .foregroundColor(.green)
                     .font(.caption)
                     .padding(.horizontal)
